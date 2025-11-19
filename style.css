@@ -1,0 +1,137 @@
+/* Màu Blue chủ đạo của Bootstrap */
+:root {
+    --bs-primary: #0d6efd;
+    --bs-primary-rgb: 13, 110, 253;
+}
+
+body {
+    background-color: #f0f2f5; /* Màu nền xám nhạt hiện đại */
+}
+
+/* Tùy chỉnh các Nút Tab (Nav-pills) */
+.nav-pills .nav-link {
+    background-color: #ffffff;
+    color: var(--bs-primary);
+    border: 1px solid #dee2e6;
+    margin: 0 5px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hiệu ứng khi rê chuột vào Tab */
+.nav-pills .nav-link:not(.active):hover {
+    background-color: #f8f9fa;
+}
+
+/* Tab được chọn (Active) - nổi bật */
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    color: #ffffff;
+    /* Hiệu ứng đổ bóng blue đẹp mắt */
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+/* Khung chứa nội dung Tab */
+.tab-pane {
+    min-height: 70vh;
+}
+
+/* CSS cho các khu vực cuộn */
+#qa-topics-list,
+.survey-scroll-area {
+    height: 60vh;
+    overflow-y: auto;
+    padding-right: 5px; /* Thêm khoảng trống cho thanh cuộn */
+}
+
+/* Định dạng tin nhắn (Giữ nguyên) */
+.message {
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    max-width: 80%;
+}
+.message.user {
+    background-color: var(--bs-primary);
+    color: white;
+    align-self: flex-end;
+}
+.message.bot {
+    background-color: #e9ecef;
+    color: #333;
+    align-self: flex-start;
+}
+.message strong {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+}
+/* --- TÙY CHỈNH CHO LIKERT SCALE (FIX MÀU SẮC) --- */
+
+.likert-options {
+    padding: 15px 0;
+}
+
+.likert-option {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.likert-label {
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+/* Ẩn nút radio tròn mặc định đi */
+.likert-label input[type="radio"] {
+    display: none;
+}
+
+/* 1. TRẠNG THÁI MẶC ĐỊNH (CHƯA CHỌN = ĐEN TRẮNG) */
+.likert-icon {
+    font-size: 2.5rem;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Hiệu ứng nảy */
+    
+    /* Mặc định là màu xám */
+    filter: grayscale(100%);
+    opacity: 0.4;
+    transform: scale(0.8);
+}
+
+.likert-text {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 500;
+    color: #adb5bd;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+/* 2. HIỆU ỨNG KHI RÊ CHUỘT (HOVER) - Sáng nhẹ lên để biết có thể bấm */
+.likert-label:hover .likert-icon {
+    filter: grayscale(50%); /* Hơi có màu chút */
+    opacity: 0.8;
+    transform: scale(1.0);
+}
+
+/* 3. TRẠNG THÁI ĐÃ CHỌN (ACTIVE) - CÓ MÀU RỰC RỠ */
+/* Khi input được check, tìm thẻ .likert-icon đứng ngay sau nó (+) */
+.likert-label input[type="radio"]:checked + .likert-icon {
+    filter: grayscale(0%); /* Trả lại màu gốc */
+    opacity: 1;
+    transform: scale(1.3); /* Phóng to lên */
+}
+
+/* Khi input được check, tìm thẻ .likert-text đứng sau nó (~) */
+.likert-label input[type="radio"]:checked ~ .likert-text {
+    color: var(--bs-primary);
+    font-weight: bold;
+    opacity: 1;
+}
