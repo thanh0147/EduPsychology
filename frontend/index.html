@@ -64,21 +64,54 @@
                     </div>
                 </div>
 
-                <div class="tab-pane fade" id="survey-content" role="tabpanel">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-clipboard2-check-fill me-2"></i>Khảo Sát Hàng Tuần</h5>
+            <div class="tab-pane fade" id="survey-content" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-clipboard2-check-fill me-2"></i>Khảo Sát Hàng Tuần</h5>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div id="survey-info-form" class="p-3">
+                            <h5 class="text-center text-primary mb-3">Thông tin cơ bản</h5>
+                            <p class="text-center text-muted mb-4">Hãy cho An biết một chút về bạn trước khi bắt đầu nhé!</p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Họ và tên (hoặc Biệt danh)</label>
+                                <input type="text" id="user-name" class="form-control" placeholder="VD: Mèo Con" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tuổi</label>
+                                    <input type="number" id="user-age" class="form-control" placeholder="VD: 16" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giới tính</label>
+                                    <select id="user-gender" class="form-select">
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                        <option value="Khác">Khác</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button id="start-survey-btn" class="btn btn-primary px-5 rounded-pill">Bắt đầu làm khảo sát</button>
+                            </div>
                         </div>
-                        <div class="card-body">
+
+                        <div id="survey-main-content" style="display: none;">
                             <div id="survey-advice-area" class="alert mt-2" style="display: none;"></div>
                             <div class="survey-scroll-area" id="survey-questions-area">
                                 </div>
                         </div>
-                        <div class="card-footer text-end bg-white">
-                            <button class="btn btn-success" id="submit-survey-button">Hoàn thành</button>
-                        </div>
+
+                    </div>
+                    <div class="card-footer text-end bg-white" id="survey-footer" style="display: none;">
+                        <button class="btn btn-success" id="submit-survey-button">Hoàn thành & Nhận lời khuyên</button>
                     </div>
                 </div>
+            </div>
 
                 <div class="tab-pane fade" id="chat-content" role="tabpanel" style="height: 70vh; display: flex; flex-direction: column;">
                     <div class="card shadow-sm h-100">

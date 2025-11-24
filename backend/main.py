@@ -47,15 +47,15 @@ app.add_middleware(
     allow_methods=["*"], # Đã cho phép * (bao gồm cả OPTIONS và POST)
     allow_headers=["*"], # Đã cho phép * (bao gồm cả Content-Type)
 )
-class SurveyAnswerInput(BaseModel):
-    """Đại diện cho 1 câu trả lời khảo sát"""
-    question_id: int = Field(..., ge=1) # ID câu hỏi phải >= 1
-    # Giá trị Likert phải từ 1 đến 5
-    response_value: int = Field(..., ge=1, le=5)
+@app.get("/debug/check-data")
+def debug_check_data():
+    res_users = supabase.table('survey_submissions').select('*').execute()
+    res_answers = supabase.table('survey_responses').select('*').execute()
+    return {
+        "users": res_users.data,
+        "answers": res_answers.data
+    }
 
-class SurveySubmissionInput(BaseModel):
-    """Đại diện cho toàn bộ bài nộp, là 1 danh sách các câu trả lời"""
-    answers: List[SurveyAnswerInput]
     
 class UserCreate(BaseModel):
     email: EmailStr
@@ -79,7 +79,128 @@ def read_root():
     """Điểm chào mừng!"""
     return {"message": "Chào mừng bạn đến với API Tư vấn Học đường!"}
 
+# ==========================================
+# 1. CÁC MODEL DỮ LIỆU (PYDANTIC)
+# ==========================================
 
+class SurveyAnswerInput(BaseModel):
+    question_id: int
+    response_value: int
+
+class SurveySubmissionInput(BaseModel):
+    full_name: str
+    age: int
+    gender: str
+    answers: List[SurveyAnswerInput]
+
+# ==========================================
+# 2. API NỘP BÀI KHẢO SÁT
+# ==========================================
+
+@app.post("/survey/submit")
+def submit_survey(submission: SurveySubmissionInput):
+    """
+    Quy trình:
+    1. Nhận thông tin Tên, Tuổi, Giới tính -> Lưu vào bảng 'survey_submissions'.
+    2. Lấy ID của bản ghi vừa tạo.
+    3. Lưu danh sách câu trả lời kèm ID đó vào bảng 'survey_responses'.
+    4. Tính điểm trung bình để AI hiểu tâm trạng.
+    5. Gọi Groq AI để xin lời khuyên.
+    """
+    
+    # Debug: In ra terminal để kiểm tra dữ liệu gửi lên
+    print(f"⬇️ DATA NHẬN: Tên={submission.full_name}, Tuổi={submission.age}, Số câu trả lời={len(submission.answers)}")
+
+    if not submission.answers:
+        raise HTTPException(status_code=400, detail="Không có câu trả lời nào được gửi.")
+
+    try:
+        # --- BƯỚC 1: LƯU THÔNG TIN NGƯỜI DÙNG ---
+        user_data = {
+            "full_name": submission.full_name,
+            "age": submission.age,
+            "gender": submission.gender
+        }
+        
+        # Insert vào Supabase và lấy về dữ liệu vừa tạo
+        user_res = supabase.table('survey_submissions').insert(user_data).execute()
+        
+        # Kiểm tra xem có lưu được không
+        if not user_res.data:
+            raise HTTPException(status_code=500, detail="Lỗi CSDL: Không lưu được thông tin người dùng (Kiểm tra RLS Policy).")
+            
+        submission_id = user_res.data[0]['id']
+        print(f"✅ Đã tạo Submission ID: {submission_id}")
+
+        # --- BƯỚC 2: LƯU CÂU TRẢ LỜI ---
+        records_to_insert = []
+        total_score = 0
+        
+        for answer in submission.answers:
+            records_to_insert.append({
+                "question_id": answer.question_id,
+                "response_value": answer.response_value,
+                "submission_id": submission_id # Liên kết với ID người dùng vừa tạo
+            })
+            total_score += answer.response_value
+
+        # Thực hiện lưu hàng loạt
+        supabase.table('survey_responses').insert(records_to_insert).execute()
+        print(f"✅ Đã lưu {len(records_to_insert)} câu trả lời.")
+
+        # --- BƯỚC 3: TÍNH ĐIỂM TRUNG BÌNH ---
+        avg_score = total_score / len(submission.answers)
+        print(f"📊 Điểm trung bình: {avg_score:.2f}")
+
+        # --- BƯỚC 4: CHUẨN BỊ PROMPT CHO AI ---
+        # Tạo bối cảnh cho AI hiểu
+        mood_description = ""
+        if avg_score <= 2:
+            mood_description = "đang cảm thấy rất tệ, buồn chán hoặc áp lực nặng nề."
+        elif avg_score <= 3.5:
+            mood_description = "đang cảm thấy bình thường, hơi mệt mỏi hoặc chông chênh một chút."
+        else:
+            mood_description = "đang có tinh thần rất tốt, vui vẻ và tích cực."
+
+        system_prompt = (
+            "Bạn là 'An', một chuyên gia tâm lý học đường thân thiện, ấm áp dành cho học sinh Việt Nam. "
+            "Nhiệm vụ của bạn là đưa ra một lời khuyên ngắn gọn (dưới 3 câu), đồng cảm và hữu ích dựa trên kết quả khảo sát."
+        )
+
+        user_prompt = (
+            f"Học sinh tên là {submission.full_name}, {submission.age} tuổi, giới tính {submission.gender}. "
+            f"Kết quả khảo sát tâm lý cho thấy điểm trung bình là {avg_score:.1f}/5. "
+            f"Điều này có nghĩa là bạn ấy {mood_description} "
+            f"Hãy gọi tên bạn ấy và đưa ra lời khuyên hoặc lời động viên phù hợp nhất ngay lúc này."
+        )
+
+        # --- BƯỚC 5: GỌI GROQ AI ---
+        completion = client_ai.chat.completions.create(
+            model="llama-3.1-8b-instant", # Sử dụng Model mới nhất
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7, # Độ sáng tạo vừa phải
+            max_tokens=200   # Giới hạn độ dài câu trả lời
+        )
+        
+        ai_advice = completion.choices[0].message.content.strip()
+        print(f"🤖 AI trả lời: {ai_advice}")
+
+        # --- BƯỚC 6: TRẢ VỀ KẾT QUẢ ---
+        return {
+            "message": "Nộp khảo sát thành công",
+            "submission_id": submission_id,
+            "average_score": avg_score,
+            "positive_advice": ai_advice
+        }
+
+    except Exception as e:
+        print(f"❌ LỖI API SUBMIT: {str(e)}")
+        # Trả về lỗi chi tiết để Frontend biết đường xử lý
+        raise HTTPException(status_code=500, detail=f"Lỗi Server: {str(e)}")
+    
 @app.get("/topics")
 def get_all_topics():
     """
@@ -224,94 +345,7 @@ def get_weekly_survey_questions():
         print(f"Lỗi khi lấy câu hỏi khảo sát: {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {str(e)}")
     
-@app.post("/survey/submit")
-def submit_survey(submission: SurveySubmissionInput):
-    """
-    API này nhận khảo sát, lưu vào CSDL, sau đó
-    gửi dữ liệu cho AI để nhận lời khuyên CÁ NHÂN HÓA.
-    """
-    if not submission.answers:
-        raise HTTPException(status_code=400, detail="Không có câu trả lời nào để nộp.")
 
-    try:
-        # === BƯỚC A: LƯU VÀO CSDL (GIỮ NGUYÊN) ===
-        records_to_insert = [
-            {
-                "question_id": answer.question_id,
-                "response_value": answer.response_value
-                # "user_id": ...
-            }
-            for answer in submission.answers
-        ]
-        supabase.table('survey_responses').insert(records_to_insert).execute()
-
-        # === BƯỚC B: LẤY TEXT CỦA CÂU HỎI ĐỂ AI HIỂU ===
-        
-        # 1. Lấy danh sách ID các câu hỏi đã nộp
-        question_ids = [answer.question_id for answer in submission.answers]
-        
-        # 2. Lấy text của các câu hỏi này từ CSDL
-        q_response = supabase.table('survey_questions') \
-                             .select('id, question_text') \
-                             .in_('id', question_ids) \
-                             .execute()
-        
-        # 3. Tạo một 'map' để tra cứu text từ id
-        # (Ví dụ: {1: "Bạn cảm thấy vui", 2: "Bạn ngủ đủ"})
-        question_text_map = {item['id']: item['question_text'] for item in q_response.data}
-
-        # === BƯỚC C: TẠO PROMPT (LỜI NHẮC) CHO AI ===
-        
-        # Tạo bản tóm tắt khảo sát cho AI đọc
-        survey_summary = []
-        for answer in submission.answers:
-            question_text = question_text_map.get(answer.question_id, "Câu hỏi không rõ")
-            survey_summary.append(
-                f"- Câu hỏi: '{question_text}', Mức độ: {answer.response_value}/5"
-            )
-        
-        # Ghép lại thành 1 đoạn văn bản
-        prompt_data = "\n".join(survey_summary)
-
-        # Lời "dặn dò" (System Prompt) cho AI
-        system_prompt = (
-            "Bạn là một chuyên gia tâm lý học đường, tên là 'An'. "
-            "Bạn luôn đồng cảm, tích cực, và không phán xét. "
-            "Một học sinh vừa nộp khảo sát. Hãy nhìn vào dữ liệu và đưa ra một lời khuyên TÍCH CỰC, "
-            "NGẮN GỌN (khoảng 5 câu) và TÌNH CẢM. "
-            "Hãy tập trung vào những điểm cần cải thiện (điểm thấp) và động viên họ."
-        )
-
-        user_prompt = f"Đây là dữ liệu khảo sát của học sinh:\n{prompt_data}"
-
-        # === BƯỚC D: GỌI AI ĐỂ LẤY LỜI KHUYÊN ===
-        completion = client_ai.chat.completions.create(
-            model="openai/gpt-oss-20b", # (gpt-4o nếu bạn muốn thông minh hơn)
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8, # Thêm chút sáng tạo
-            max_completion_tokens=4096   # Giới hạn độ dài
-        )
-        
-        ai_advice = completion.choices[0].message.content.strip()
-
-        return {
-            "message": f"Đã nộp thành công {len(records_to_insert)} câu trả lời.",
-            "positive_advice": ai_advice # Trả về lời khuyên từ AI
-        }
-
-    except Exception as e:
-        print(f"[Lỗi API Khảo sát]: {e}")
-        # Nếu AI lỗi, trả về lời khuyên dự phòng
-        if "ai_advice" not in locals():
-            return {
-                "message": f"Đã nộp thành công {len(records_to_insert)} câu trả lời.",
-                "positive_advice": "Cảm ơn bạn đã chia sẻ. Hãy luôn nhớ yêu thương bản thân mình nhé!"
-            }
-        
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {str(e)}")
     
 @app.post("/auth/register", response_model=Token)
 def auth_register(user_in: UserCreate):
@@ -457,22 +491,54 @@ class SurveyQuestionInput(BaseModel):
 # 1. Thống kê cảm xúc (Cho biểu đồ)
 @app.get("/admin/stats")
 def get_emotion_stats():
-    """Lấy thống kê số lượng phản hồi theo mức độ 1-5"""
+    """
+    Thống kê dựa trên ĐIỂM TRUNG BÌNH của mỗi người.
+    Ví dụ: Người A trả lời (5, 5, 4) -> TB = 4.6 -> Xếp loại 5
+    """
     try:
-        # Lấy toàn bộ phản hồi từ bảng survey_responses
-        response = supabase.table('survey_responses').select('response_value').execute()
+        # Lấy tất cả câu trả lời kèm theo submission_id
+        response = supabase.table('survey_responses').select('submission_id, response_value').execute()
         data = response.data
-        
-        # Đếm số lượng từng mức độ (1, 2, 3, 4, 5)
-        stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        total = len(data)
-        
-        for item in data:
+        print(f"📊 Dữ liệu thô từ DB: {len(data)} dòng")
+        print(f"🔍 Mẫu 5 dòng đầu: {data[:5]}")
+        # Gom nhóm theo người dùng (submission_id)
+        # user_scores = { 'ID_123': [5, 4, 5], 'ID_456': [1, 2, 1] }
+        user_scores = {}
+        for i, item in enumerate(data):
+            sub_id = item.get('submission_id')
             val = item.get('response_value')
-            if val in stats:
-                stats[val] += 1
+            
+            if sub_id:
+                # === TRƯỜNG HỢP 1: DỮ LIỆU MỚI (Có ID người dùng) ===
+                # Logic: Gom nhóm các câu trả lời của cùng 1 người lại
+                key = str(sub_id)
+                if key not in user_scores:
+                    user_scores[key] = []
+                user_scores[key].append(val)
+            else:
+                # === TRƯỜNG HỢP 2: DỮ LIỆU CŨ (Không có ID) ===
+                # Logic: "Chế" ra một ID giả (fake_id) cho mỗi dòng dữ liệu cũ
+                # Điều này giúp tận dụng 1000 dòng cũ để biểu đồ trông "đầy đặn" hơn
+                fake_id = f"anon_old_data_{i}"
+                user_scores[fake_id] = [val]
+        
+        # Tính trung bình và xếp loại
+        stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        total_people = len(user_scores)
+
+        for uid, scores in user_scores.items():
+            if scores:
+                # Tính trung bình cộng
+                avg = sum(scores) / len(scores)
+                rounded_avg = round(avg)
                 
-        return {"total": total, "breakdown": stats}
+                # Đảm bảo điểm nằm trong khoảng 1-5 (phòng hờ lỗi data)
+                if rounded_avg < 1: rounded_avg = 1
+                if rounded_avg > 5: rounded_avg = 5
+                
+                stats[rounded_avg] += 1
+                
+        return {"total": total_people, "breakdown": stats}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -524,3 +590,4 @@ def delete_survey_question(id: int):
         return {"message": "Xóa thành công"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    

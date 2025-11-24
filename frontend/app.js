@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('chat_session_id', chatSessionId);
     }
     // --- CÁC BIẾN QUAN TRỌNG ---
-    const API_URL = 'https://edupsy-backend.onrender.com';
+    const API_URL = 'http://127.0.0.1:8000';
 
     const logoutButton = document.getElementById('logout-button');
     const chatForm = document.getElementById('chat-form');
@@ -113,7 +113,34 @@ document.addEventListener('DOMContentLoaded', () => {
         { value: 5, text: 'Rất tốt', icon: '🥰' }
     ];
     // (Bạn có thể đổi text thành "Rất không đồng ý" v.v. nếu muốn)
+const surveyInfoForm = document.getElementById('survey-info-form');
+    const surveyMainContent = document.getElementById('survey-main-content');
+    const surveyFooter = document.getElementById('survey-footer');
+    const startSurveyBtn = document.getElementById('start-survey-btn');
+    
+    // Các input thông tin
+    const userNameInput = document.getElementById('user-name');
+    const userAgeInput = document.getElementById('user-age');
+    const userGenderInput = document.getElementById('user-gender');
 
+    // --- LOGIC: BẮT ĐẦU KHẢO SÁT ---
+    startSurveyBtn.addEventListener('click', () => {
+        // Kiểm tra dữ liệu
+        if (!userNameInput.value || !userAgeInput.value) {
+            alert("Vui lòng nhập tên và tuổi của bạn!");
+            return;
+        }
+
+        // Ẩn form thông tin, hiện câu hỏi
+        surveyInfoForm.style.display = 'none';
+        surveyMainContent.style.display = 'block';
+        surveyFooter.style.display = 'block';
+        
+        // Tải câu hỏi nếu chưa tải
+        if (!isSurveyLoaded) {
+            loadSurveyQuestions();
+        }
+    });
     async function loadSurveyQuestions() {
     surveyQuestionsArea.innerHTML = `<p class="text-center">Đang tải khảo sát...</p>`;
     surveyAdviceArea.style.display = 'none';
@@ -170,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const selected = q.querySelector(`input[name="q-${questionId}"]:checked`);
             
             if (selected) {
-                // Thêm hiệu ứng visual để biết đã chọn
                 answers.push({
                     question_id: parseInt(questionId),
                     response_value: parseInt(selected.value)
@@ -181,51 +207,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (!allAnswered) {
-            alert('Bạn ơi, hãy chọn cảm xúc cho tất cả các câu hỏi nhé! (Kéo lên kiểm tra các dòng chưa sáng màu)');
+            alert('Bạn vui lòng trả lời hết các câu hỏi nhé!');
             return;
         }
 
-        // Bắt đầu gửi
         submitSurveyButton.disabled = true;
-        submitSurveyButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang gửi...'; // Hiệu ứng loading nút
-        
         surveyAdviceArea.style.display = 'block';
         surveyAdviceArea.className = 'alert alert-info';
-        surveyAdviceArea.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-grow spinner-grow-sm me-2" role="status"></div> An đang suy nghĩ lời khuyên cho bạn...</div>';
+        surveyAdviceArea.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Đang gửi và phân tích...';
 
         try {
-            console.log("Đang gửi dữ liệu lên server:", JSON.stringify({ answers: answers }));
+            // Lấy thông tin từ form
+            const submissionData = {
+                full_name: userNameInput.value,
+                age: parseInt(userAgeInput.value),
+                gender: userGenderInput.value,
+                answers: answers
+            };
 
             const data = await fetchAPI('/survey/submit', {
                 method: 'POST',
-                body: JSON.stringify({ answers: answers })
+                body: JSON.stringify(submissionData) // Gửi cục dữ liệu mới
             });
-            
-            console.log("Server trả về:", data); // Kiểm tra log này nếu lỗi
 
-            // THÀNH CÔNG
-            surveyAdviceArea.className = 'alert alert-success border-0 shadow-sm';
+            surveyAdviceArea.className = 'alert alert-success';
             surveyAdviceArea.innerHTML = `
-                <h5 class="alert-heading"><i class="bi bi-stars text-warning"></i> Lời khuyên từ An:</h5>
-                <p class="mb-0" style="font-size: 1.1rem; line-height: 1.6;">${data.positive_advice}</p>
+                <h5>Cảm ơn ${submissionData.full_name}!</h5>
+                <p><strong>Lời khuyên từ An:</strong> ${data.positive_advice}</p>
             `;
             
-            submitSurveyButton.innerHTML = 'Đã hoàn thành';
-            
-            // Tải lại câu hỏi sau 5 giây (nếu muốn)
-            // setTimeout(loadSurveyQuestions, 5000);
+            // Ẩn nút nộp bài
+            submitSurveyButton.style.display = 'none';
 
         } catch (error) {
-            console.error("Lỗi Survey:", error);
-            
             surveyAdviceArea.className = 'alert alert-danger';
-            surveyAdviceArea.innerHTML = `
-                <strong>Có lỗi xảy ra:</strong> ${error.message} <br>
-                <small>Hãy kiểm tra lại Server Terminal (cửa sổ đen chạy uvicorn) để xem chi tiết.</small>
-            `;
-            
+            surveyAdviceArea.innerHTML = `Lỗi: ${error.message}`;
             submitSurveyButton.disabled = false;
-            submitSurveyButton.innerHTML = 'Thử lại';
         }
     });
 

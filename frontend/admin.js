@@ -1,4 +1,4 @@
-const API_URL = ''; // Tự động lấy domain hiện tại
+const API_URL = 'http://127.0.0.1:8000'; // Tự động lấy domain hiện tại
 
 // --- HÀM CHUYỂN TAB ---
 function showSection(sectionId) {
