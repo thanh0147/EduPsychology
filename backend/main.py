@@ -495,57 +495,78 @@ class SurveyQuestionInput(BaseModel):
 @app.get("/admin/stats")
 def get_emotion_stats():
     """
-    Thống kê dựa trên ĐIỂM TRUNG BÌNH của mỗi người.
-    Ví dụ: Người A trả lời (5, 5, 4) -> TB = 4.6 -> Xếp loại 5
+    Thống kê cảm xúc (Phiên bản Vòng lặp - Tải không giới hạn)
     """
     try:
-        # Lấy tất cả câu trả lời kèm theo submission_id
-        response = supabase.table('survey_responses') \
-                           .select('submission_id, response_value') \
-                           .range(0, 9999) \
-                           .execute()
-        data = response.data
-        print(f"📊 Dữ liệu thô từ DB: {len(data)} dòng")
-        print(f"🔍 Mẫu 5 dòng đầu: {data[:5]}")
-        # Gom nhóm theo người dùng (submission_id)
-        # user_scores = { 'ID_123': [5, 4, 5], 'ID_456': [1, 2, 1] }
+        all_data = []       # Nơi chứa toàn bộ dữ liệu gom được
+        current_start = 0   # Điểm bắt đầu
+        batch_size = 1000   # Kích thước mỗi lần tải (Max của Supabase)
+        
+        print("\n⏳ Bắt đầu tải dữ liệu phân trang...")
+
+        while True:
+            # Tải từng lô 1000 dòng
+            response = supabase.table('survey_responses') \
+                               .select('submission_id, response_value') \
+                               .order('id', desc=True) \
+                               .range(current_start, current_start + batch_size - 1) \
+                               .execute()
+            
+            batch = response.data
+            all_data.extend(batch) # Gộp lô vừa tải vào danh sách chung
+            
+            print(f"   + Đã tải lô từ dòng {current_start} -> {current_start + len(batch)}")
+            
+            # Nếu lô này lấy về ít hơn 1000 dòng, nghĩa là đã hết dữ liệu trong kho -> Dừng
+            if len(batch) < batch_size:
+                break
+            
+            # Nếu chưa hết, tăng điểm bắt đầu lên để tải lô tiếp theo
+            current_start += batch_size
+
+        print(f"📊 TỔNG KẾT: Đã tải thành công {len(all_data)} dòng dữ liệu!")
+        
+        # --- PHẦN XỬ LÝ LOGIC (Giữ nguyên, chỉ đổi biến data thành all_data) ---
         user_scores = {}
-        for i, item in enumerate(data):
+        old_data_count = 0 
+
+        for item in all_data: # <--- Chú ý: Dùng all_data ở đây
             sub_id = item.get('submission_id')
             val = item.get('response_value')
             
             if sub_id:
-                # === TRƯỜNG HỢP 1: DỮ LIỆU MỚI (Có ID người dùng) ===
-                # Logic: Gom nhóm các câu trả lời của cùng 1 người lại
+                # Dữ liệu MỚI (Có ID)
                 key = str(sub_id)
                 if key not in user_scores:
                     user_scores[key] = []
                 user_scores[key].append(val)
             else:
-                # === TRƯỜNG HỢP 2: DỮ LIỆU CŨ (Không có ID) ===
-                # Logic: "Chế" ra một ID giả (fake_id) cho mỗi dòng dữ liệu cũ
-                # Điều này giúp tận dụng 1000 dòng cũ để biểu đồ trông "đầy đặn" hơn
-                fake_id = f"anon_old_data_{i}"
-                user_scores[fake_id] = [val]
+                # Dữ liệu CŨ (Không ID)
+                fake_user_index = old_data_count // 5
+                fake_id = f"anon_group_{fake_user_index}"
+                
+                if fake_id not in user_scores:
+                    user_scores[fake_id] = []
+                user_scores[fake_id].append(val)
+                
+                old_data_count += 1
         
-        # Tính trung bình và xếp loại
+        # Tính toán thống kê
         stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
         total_people = len(user_scores)
 
         for uid, scores in user_scores.items():
             if scores:
-                # Tính trung bình cộng
                 avg = sum(scores) / len(scores)
                 rounded_avg = round(avg)
-                
-                # Đảm bảo điểm nằm trong khoảng 1-5 (phòng hờ lỗi data)
                 if rounded_avg < 1: rounded_avg = 1
                 if rounded_avg > 5: rounded_avg = 5
-                
                 stats[rounded_avg] += 1
                 
         return {"total": total_people, "breakdown": stats}
+
     except Exception as e:
+        print(f"Lỗi thống kê: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # 2. Thêm Chủ đề mới
