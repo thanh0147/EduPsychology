@@ -495,54 +495,60 @@ class SurveyQuestionInput(BaseModel):
 @app.get("/admin/stats")
 def get_emotion_stats():
     """
-    Thống kê dựa trên ĐIỂM TRUNG BÌNH của mỗi người.
-    Ví dụ: Người A trả lời (5, 5, 4) -> TB = 4.6 -> Xếp loại 5
+    Thống kê cải tiến:
+    1. Dữ liệu MỚI: Gom theo ID người thật.
+    2. Dữ liệu CŨ: Cứ 5 câu trả lời liên tiếp -> Gom thành 1 người giả định.
     """
     try:
-        # Lấy tất cả câu trả lời kèm theo submission_id
         response = supabase.table('survey_responses').select('submission_id, response_value').execute()
         data = response.data
-        print(f"📊 Dữ liệu thô từ DB: {len(data)} dòng")
-        print(f"🔍 Mẫu 5 dòng đầu: {data[:5]}")
-        # Gom nhóm theo người dùng (submission_id)
-        # user_scores = { 'ID_123': [5, 4, 5], 'ID_456': [1, 2, 1] }
+        
         user_scores = {}
-        for i, item in enumerate(data):
+        
+        # Biến đếm riêng cho dữ liệu cũ để gom nhóm
+        old_data_count = 0 
+
+        for item in data:
             sub_id = item.get('submission_id')
             val = item.get('response_value')
             
             if sub_id:
-                # === TRƯỜNG HỢP 1: DỮ LIỆU MỚI (Có ID người dùng) ===
-                # Logic: Gom nhóm các câu trả lời của cùng 1 người lại
+                # === NGƯỜI DÙNG THẬT (Có ID) ===
                 key = str(sub_id)
                 if key not in user_scores:
                     user_scores[key] = []
                 user_scores[key].append(val)
             else:
-                # === TRƯỜNG HỢP 2: DỮ LIỆU CŨ (Không có ID) ===
-                # Logic: "Chế" ra một ID giả (fake_id) cho mỗi dòng dữ liệu cũ
-                # Điều này giúp tận dụng 1000 dòng cũ để biểu đồ trông "đầy đặn" hơn
-                fake_id = f"anon_old_data_{i}"
-                user_scores[fake_id] = [val]
+                # === DỮ LIỆU CŨ (Không ID) ===
+                # Logic mới: Dùng phép chia lấy nguyên (//) cho 5
+                # Ví dụ: Dòng 0,1,2,3,4 -> (i // 5) đều bằng 0 -> Gom vào người 'anon_0'
+                #        Dòng 5,6,7,8,9 -> (i // 5) đều bằng 1 -> Gom vào người 'anon_1'
+                
+                fake_user_index = old_data_count // 5  # <--- PHÉP THUẬT NẰM Ở ĐÂY
+                fake_id = f"anon_group_{fake_user_index}"
+                
+                if fake_id not in user_scores:
+                    user_scores[fake_id] = []
+                user_scores[fake_id].append(val)
+                
+                old_data_count += 1 # Tăng biến đếm
         
-        # Tính trung bình và xếp loại
+        # --- TÍNH TOÁN (Giữ nguyên) ---
         stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
         total_people = len(user_scores)
 
         for uid, scores in user_scores.items():
             if scores:
-                # Tính trung bình cộng
                 avg = sum(scores) / len(scores)
                 rounded_avg = round(avg)
-                
-                # Đảm bảo điểm nằm trong khoảng 1-5 (phòng hờ lỗi data)
                 if rounded_avg < 1: rounded_avg = 1
                 if rounded_avg > 5: rounded_avg = 5
-                
                 stats[rounded_avg] += 1
                 
         return {"total": total_people, "breakdown": stats}
+
     except Exception as e:
+        print(f"Lỗi thống kê: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # 2. Thêm Chủ đề mới
