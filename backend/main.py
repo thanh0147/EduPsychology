@@ -438,3 +438,89 @@ def chat_with_bot(chat_input: ChatInput):
     except Exception as e:
         print(f"[Lỗi API Chat]: {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
+    
+# --- MODEL DỮ LIỆU CHO ADMIN ---
+class TopicInput(BaseModel):
+    name: str
+    icon: str
+
+class QuestionInput(BaseModel):
+    topic_id: int
+    question_text: str
+    answer_text: str
+
+class SurveyQuestionInput(BaseModel):
+    question_text: str
+
+# --- API QUẢN TRỊ (ADMIN) ---
+
+# 1. Thống kê cảm xúc (Cho biểu đồ)
+@app.get("/admin/stats")
+def get_emotion_stats():
+    """Lấy thống kê số lượng phản hồi theo mức độ 1-5"""
+    try:
+        # Lấy toàn bộ phản hồi từ bảng survey_responses
+        response = supabase.table('survey_responses').select('response_value').execute()
+        data = response.data
+        
+        # Đếm số lượng từng mức độ (1, 2, 3, 4, 5)
+        stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        total = len(data)
+        
+        for item in data:
+            val = item.get('response_value')
+            if val in stats:
+                stats[val] += 1
+                
+        return {"total": total, "breakdown": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 2. Thêm Chủ đề mới
+@app.post("/admin/topics")
+def create_topic(topic: TopicInput):
+    try:
+        supabase.table('topics').insert({"name": topic.name, "icon": topic.icon}).execute()
+        return {"message": "Thêm chủ đề thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 3. Xóa Chủ đề
+@app.delete("/admin/topics/{topic_id}")
+def delete_topic(topic_id: int):
+    try:
+        supabase.table('topics').delete().eq('id', topic_id).execute()
+        return {"message": "Xóa chủ đề thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 4. Thêm Câu hỏi Q&A
+@app.post("/admin/questions")
+def create_qa_question(q: QuestionInput):
+    try:
+        supabase.table('questions').insert({
+            "topic_id": q.topic_id,
+            "question_text": q.question_text,
+            "answer_text": q.answer_text
+        }).execute()
+        return {"message": "Thêm câu hỏi thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 5. Thêm Câu hỏi Khảo sát
+@app.post("/admin/survey-questions")
+def create_survey_question(q: SurveyQuestionInput):
+    try:
+        supabase.table('survey_questions').insert({"question_text": q.question_text}).execute()
+        return {"message": "Thêm câu hỏi khảo sát thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 6. Xóa Câu hỏi Khảo sát
+@app.delete("/admin/survey-questions/{id}")
+def delete_survey_question(id: int):
+    try:
+        supabase.table('survey_questions').delete().eq('id', id).execute()
+        return {"message": "Xóa thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
