@@ -500,7 +500,11 @@ def get_emotion_stats():
     """
     try:
         # Lấy tất cả câu trả lời kèm theo submission_id
-        response = supabase.table('survey_responses').select('submission_id, response_value').execute()
+        response = supabase.table('survey_responses') \
+                           .select('submission_id, response_value') \
+                           .order('id', desc=True) \
+                           .range(0, 9999) \
+                           .execute()
         data = response.data
         print(f"📊 Dữ liệu thô từ DB: {len(data)} dòng")
         print(f"🔍 Mẫu 5 dòng đầu: {data[:5]}")
