@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('chat_session_id', chatSessionId);
     }
     // --- CÁC BIẾN QUAN TRỌNG ---
-    const API_URL = 'https://edupsychology.onrender.com';
+    const API_URL = 'https://edupsy-backend.onrender.com';
 
     const logoutButton = document.getElementById('logout-button');
     const chatForm = document.getElementById('chat-form');
