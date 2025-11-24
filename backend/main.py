@@ -502,7 +502,6 @@ def get_emotion_stats():
         # Lấy tất cả câu trả lời kèm theo submission_id
         response = supabase.table('survey_responses') \
                            .select('submission_id, response_value') \
-                           .order('id', desc=True) \
                            .range(0, 9999) \
                            .execute()
         data = response.data
