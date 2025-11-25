@@ -1,100 +1,142 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Web Tư Vấn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1011/1011528.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/f1bec77420.js" crossorigin="anonymous"></script>
     <style>
         body { background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background-color: #343a40; color: white; }
-        .nav-link { color: rgba(255,255,255,.8); cursor: pointer; }
-        .nav-link:hover, .nav-link.active { color: white; background-color: rgba(255,255,255,.1); }
-        .card-stat { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Sidebar trên Desktop */
+        @media (min-width: 768px) {
+            .sidebar {
+                min-height: 100vh;
+                background-color: #343a40;
+                color: white;
+            }
+        }
+        
+        /* Sidebar trên Mobile (Làm đẹp hơn) */
+        @media (max-width: 767.98px) {
+            .sidebar {
+                background-color: #343a40;
+                color: white;
+                margin-bottom: 20px;
+                border-radius: 0 0 10px 10px;
+            }
+        }
+
+        .nav-link { color: rgba(255,255,255,.8); cursor: pointer; padding: 12px 15px; }
+        .nav-link:hover, .nav-link.active { color: white; background-color: rgba(255,255,255,.1); border-radius: 5px; }
+        .card-stat { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* Container chứa biểu đồ - QUAN TRỌNG CHO MOBILE */
+        .chart-container {
+            position: relative; 
+            height: 60vh; /* Trên mobile cao 60% màn hình */
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 400px; } /* Trên desktop cao 400px */
+        }
     </style>
 </head>
 <body>
 
+<nav class="navbar navbar-dark bg-dark d-md-none p-3">
+    <span class="navbar-brand mb-0 h1">Quản Trị Viên</span>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</nav>
+
 <div class="container-fluid">
     <div class="row">
-        <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse show p-3">
-            <h4 class="text-center mb-4"><i class="bi bi-shield-lock"></i> ADMIN</h4>
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
+            <h4 class="text-center mb-4 d-none d-md-block"><i class="bi bi-shield-lock"></i> ADMIN</h4>
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard')"><i class="bi bi-graph-up"></i> Thống kê</a></li>
-                <li class="nav-item"><a class="nav-link" onclick="showSection('topics')"><i class="bi bi-tags"></i> Quản lý Chủ đề</a></li>
-                <li class="nav-item"><a class="nav-link" onclick="showSection('qa')"><i class="bi bi-question-circle"></i> Quản lý Q&A</a></li>
-                <li class="nav-item"><a class="nav-link" onclick="showSection('survey')"><i class="bi bi-clipboard-data"></i> Quản lý Khảo sát</a></li>
-                <li class="nav-item mt-4"><a class="nav-link text-danger" href="index.html"><i class="bi bi-box-arrow-right"></i> Về trang chủ</a></li>
+                <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard')"><i class="bi bi-graph-up me-2"></i> Thống kê</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showSection('topics')"><i class="bi bi-tags me-2"></i> Quản lý Chủ đề</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showSection('qa')"><i class="bi bi-question-circle me-2"></i> Quản lý Q&A</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="showSection('survey')"><i class="bi bi-clipboard-data me-2"></i> Quản lý Khảo sát</a></li>
+                <li class="nav-item mt-4"><a class="nav-link text-danger bg-white bg-opacity-10" href="index.html"><i class="bi bi-box-arrow-right me-2"></i> Về trang chủ</a></li>
             </ul>
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
             
             <div id="section-dashboard">
-                <h2>📊 Thống kê cảm xúc học sinh</h2>
-                <div class="row mt-4">
-                    <div class="col-md-8">
+                <h2 class="h4 mb-3">📊 Thống kê cảm xúc</h2>
+                
+                <div class="row">
+                    <div class="col-12 col-lg-8">
                         <div class="card card-stat p-3">
-                            <canvas id="emotionChart"></canvas>
+                            <div class="chart-container">
+                                <canvas id="emotionChart"></canvas>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card card-stat p-3 bg-primary text-white mb-3">
+                    
+                    <div class="col-12 col-lg-4">
+                        <div class="card card-stat p-4 bg-primary text-white text-center">
                             <h5>Tổng lượt khảo sát</h5>
-                            <h1 id="total-surveys">0</h1>
+                            <h1 id="total-surveys" class="display-1 fw-bold">0</h1>
+                            <p class="mb-0 text-white-50">Lượt tham gia</p>
                         </div>
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Biểu đồ thể hiện mức độ tích cực từ 1 (Rất tệ) đến 5 (Rất tốt).
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="bi bi-info-circle fs-1 me-3"></i>
+                            <div>Biểu đồ thể hiện mức độ tích cực từ <strong>1 (Rất tệ)</strong> đến <strong>5 (Rất tốt)</strong>.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="section-topics" class="d-none">
-                <h2>🏷️ Quản lý Chủ đề</h2>
-                <div class="card card-stat p-3 mt-3">
-                    <form id="form-add-topic" class="d-flex gap-2 mb-4">
-                        <input type="text" id="topic-name" class="form-control" placeholder="Tên chủ đề (VD: Sức khỏe)" required>
+                <h2 class="h4 mb-3">🏷️ Quản lý Chủ đề</h2>
+                <div class="card card-stat p-3">
+                    <form id="form-add-topic" class="d-flex flex-column flex-md-row gap-2 mb-4">
+                        <input type="text" id="topic-name" class="form-control" placeholder="Tên chủ đề" required>
                         <input type="text" id="topic-icon" class="form-control" placeholder="Icon Bootstrap (VD: heart)" required>
-                        <button type="submit" class="btn btn-success">Thêm</button>
+                        <button type="submit" class="btn btn-success w-100 w-md-auto">Thêm</button>
                     </form>
-                    <ul class="list-group" id="admin-topic-list">
-                        </ul>
+                    <ul class="list-group list-group-flush" id="admin-topic-list"></ul>
                 </div>
             </div>
 
             <div id="section-qa" class="d-none">
-                <h2>❓ Thêm câu hỏi Q&A</h2>
-                <div class="card card-stat p-3 mt-3">
+                <h2 class="h4 mb-3">❓ Thêm câu hỏi Q&A</h2>
+                <div class="card card-stat p-3">
                     <form id="form-add-qa">
                         <div class="mb-3">
-                            <label>Chọn chủ đề:</label>
+                            <label class="form-label fw-bold">Chọn chủ đề</label>
                             <select id="qa-topic-select" class="form-select" required></select>
                         </div>
                         <div class="mb-3">
-                            <label>Câu hỏi:</label>
+                            <label class="form-label fw-bold">Câu hỏi</label>
                             <input type="text" id="qa-question" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label>Câu trả lời:</label>
-                            <textarea id="qa-answer" class="form-control" rows="3" required></textarea>
+                            <label class="form-label fw-bold">Câu trả lời</label>
+                            <textarea id="qa-answer" class="form-control" rows="4" required></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">Lưu câu hỏi</button>
+                        <button type="submit" class="btn btn-primary w-100">Lưu câu hỏi</button>
                     </form>
                 </div>
             </div>
 
             <div id="section-survey" class="d-none">
-                <h2>📝 Ngân hàng câu hỏi Khảo sát</h2>
-                <div class="card card-stat p-3 mt-3">
-                    <form id="form-add-survey" class="d-flex gap-2 mb-4">
-                        <input type="text" id="survey-question-input" class="form-control" placeholder="Nhập câu hỏi khảo sát mới..." required>
-                        <button type="submit" class="btn btn-success">Thêm</button>
+                <h2 class="h4 mb-3">📝 Ngân hàng Khảo sát</h2>
+                <div class="card card-stat p-3">
+                    <form id="form-add-survey" class="d-flex flex-column flex-md-row gap-2 mb-4">
+                        <input type="text" id="survey-question-input" class="form-control" placeholder="Nhập câu hỏi mới..." required>
+                        <button type="submit" class="btn btn-success w-100 w-md-auto">Thêm</button>
                     </form>
-                    <ul class="list-group" id="admin-survey-list">
-                        </ul>
+                    <ul class="list-group list-group-flush" id="admin-survey-list"></ul>
                 </div>
             </div>
 
@@ -102,6 +144,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

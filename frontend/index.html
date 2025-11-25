@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Tư Vấn</title>
+    <title>LovAI - Web Tư Vấn</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3997/3997872.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://kit.fontawesome.com/f1bec77420.js" crossorigin="anonymous"></script>
 </head>
 <body class="bg-light-subtle">
 
@@ -15,7 +16,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
             <div class="container">
                 <a class="navbar-brand fw-bold" href="#">
-                    <i class="bi bi-heart-pulse-fill me-2"></i>An
+                    <i class="bi bi-chat-heart"></i>LovAI
                 </a>
             </div>
         </nav>
@@ -35,7 +36,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="nav-chat-tab" data-bs-toggle="pill" data-bs-target="#chat-content" type="button" role="tab">
-                        <i class="bi bi-chat-dots-fill me-2"></i>Chat với An
+                        <i class="bi bi-chat-dots-fill me-2"></i>Chat với Diệu
                     </button>
                 </li>
             </ul>
@@ -43,38 +44,29 @@
             <div class="tab-content" id="myTabContent">
                 
                 <div class="tab-pane fade show active" id="qa-content" role="tabpanel">
-                    <div class="row g-4">
-                        <div class="col-md-5">
-                            <div class="card shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title"><i class="bi bi-tags-fill me-2"></i>Chủ đề</h5>
-                                    <div class="list-group" id="qa-topics-list">
-                                        </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-7">
-                            <div class="card shadow-sm">
-                                <div class="card-body text-center" style="min-height: 200px;">
-                                    <i class="bi bi-arrow-left-circle-fill display-4 text-primary opacity-50"></i>
-                                    <h5 class="mt-3">Chọn một chủ đề</h5>
-                                    <p class="text-muted">Cửa sổ câu hỏi sẽ bật lên sau khi bạn chọn một chủ đề bên trái.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    
+    <div class="text-center mb-5 mt-4">
+        <h2 class="fw-bold text-white display-6" style="text-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            Khám Phá Chủ Đề
+        </h2>
+        <p class="text-white opacity-75 fs-5">Bạn đang quan tâm đến vấn đề gì hôm nay?</p>
+    </div>
+
+    <div id="qa-topics-list" class="row g-4 justify-content-center px-lg-5">
+        </div>
+
+</div>
 
             <div class="tab-pane fade" id="survey-content" role="tabpanel">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-clipboard2-check-fill me-2"></i>Khảo Sát Hàng Tuần</h5>
+                        <h5 class="mb-0"><i class="fa-solid fa-clipboard-list fa-beat" style="color: #B197FC;"></i>Khảo Sát Hàng Tuần</h5>
                     </div>
                     <div class="card-body">
                         
                         <div id="survey-info-form" class="p-3">
                             <h5 class="text-center text-primary mb-3">Thông tin cơ bản</h5>
-                            <p class="text-center text-muted mb-4">Hãy cho An biết một chút về bạn trước khi bắt đầu nhé!</p>
+                            <p class="text-center text-muted mb-4">Hãy cho Diệu biết một chút về bạn trước khi bắt đầu nhé!</p>
                             
                             <div class="mb-3">
                                 <label class="form-label">Họ và tên (hoặc Biệt danh)</label>
@@ -97,7 +89,7 @@
                             </div>
 
                             <div class="text-center mt-3">
-                                <button id="start-survey-btn" class="btn btn-primary px-5 rounded-pill">Bắt đầu làm khảo sát</button>
+                                <button id="start-survey-btn" class="btn-ks">Bắt đầu khảo sát với Diệu</button>
                             </div>
                         </div>
 
@@ -109,7 +101,7 @@
 
                     </div>
                     <div class="card-footer text-end bg-white" id="survey-footer" style="display: none;">
-                        <button class="btn btn-success" id="submit-survey-button">Hoàn thành & Nhận lời khuyên</button>
+                        <button class="btn btn-success" id="submit-survey-button">Gửi Diệu nha</button>
                     </div>
                 </div>
             </div>
@@ -117,7 +109,7 @@
                 <div class="tab-pane fade" id="chat-content" role="tabpanel" style="height: 70vh; display: flex; flex-direction: column;">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white">
-                             <h5 class="mb-0"><i class="bi bi-chat-dots-fill me-2"></i>Chat với An</h5>
+                             <h5 class="mb-0"><i class="fa-solid fa-heart-circle-bolt fa-beat" style="color: #B197FC;"></i>Chat với Diệu</h5>
                         </div>
                         <div class="card-body" id="chat-box" style="flex-grow: 1; overflow-y: auto;">
                             </div>
@@ -149,6 +141,31 @@
         </div>
     </div>
 
+    <div class="modal fade" id="surveyResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal"> <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-primary">
+                    <i class="bi bi-stars text-warning me-2"></i>Lời khuyên từ Diệu nè!
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-envelope-heart-fill text-primary" style="font-size: 4rem;"></i>
+                </div>
+                
+                <h4 id="modal-user-name" class="fw-bold mb-3">Chào bạn!</h4>
+                
+                <p id="modal-advice-text" class="fs-5 text-muted" style="line-height: 1.6;">
+                    Đang tải lời khuyên...
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal">Cảm ơn Diệu nha!</button>
+            </div>
+        </div>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app.js"></script>
 </body>

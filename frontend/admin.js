@@ -1,4 +1,4 @@
-const API_URL = 'http://127.0.0.1:8000'; // Tự động lấy domain hiện tại
+const API_URL = 'https://edupsy-backend.onrender.com'; // Tự động lấy domain hiện tại
 
 // --- HÀM CHUYỂN TAB ---
 function showSection(sectionId) {
@@ -31,29 +31,31 @@ async function loadStats() {
 
         const ctx = document.getElementById('emotionChart').getContext('2d');
         
-        // Nếu biểu đồ đã có thì hủy để vẽ lại
         if (myChart) myChart.destroy();
 
         myChart = new Chart(ctx, {
-            type: 'bar', // Hoặc 'pie', 'doughnut'
+            type: 'bar',
             data: {
                 labels: ['Rất tệ (1)', 'Tệ (2)', 'Bình thường (3)', 'Tốt (4)', 'Rất tốt (5)'],
                 datasets: [{
-                    label: 'Số lượng học sinh chọn',
+                    label: 'Số lượng học sinh',
                     data: [data.breakdown[1], data.breakdown[2], data.breakdown[3], data.breakdown[4], data.breakdown[5]],
-                    backgroundColor: [
-                        '#dc3545', // Đỏ
-                        '#fd7e14', // Cam
-                        '#ffc107', // Vàng
-                        '#198754', // Xanh lá
-                        '#0d6efd'  // Xanh dương
-                    ],
-                    borderWidth: 1
+                    backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0d6efd'],
+                    borderRadius: 5, // Bo góc cột cho đẹp
                 }]
             },
             options: {
                 responsive: true,
-                scales: { y: { beginAtZero: true } }
+                maintainAspectRatio: false, // <--- QUAN TRỌNG: Cho phép co giãn tự do
+                plugins: {
+                    legend: { display: false } // Ẩn chú thích cho đỡ chật trên mobile
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 } // Chỉ hiện số nguyên
+                    }
+                }
             }
         });
 
