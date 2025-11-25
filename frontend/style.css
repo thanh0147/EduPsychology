@@ -231,3 +231,41 @@ body {
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: scale(0.8);
 }
+/* --- RESPONSIVE CHO MOBILE (SỬA LỖI TRÀN MÀN HÌNH) --- */
+@media (max-width: 768px) {
+    
+    /* 1. Thu nhỏ khoảng cách lề của khung Card */
+    .card-body {
+        padding: 10px !important; /* Giảm padding để tiết kiệm diện tích */
+    }
+
+    /* 2. Điều chỉnh kích thước Icon Khảo sát */
+    .likert-icon {
+        font-size: 1.8rem; /* Giảm từ 3.5rem xuống 1.8rem cho vừa màn hình */
+        margin-bottom: 2px;
+    }
+
+    /* 3. Thu nhỏ chữ mô tả (Rất tốt, Tệ...) */
+    .likert-text {
+        font-size: 0.65rem; /* Chữ nhỏ lại */
+        white-space: nowrap; /* Không cho xuống dòng làm vỡ bố cục */
+    }
+
+    /* 4. Giảm khoảng cách giữa các nút */
+    .likert-label {
+        padding: 0; 
+        width: 100%;
+    }
+
+    /* 5. Căn chỉnh lại container */
+    .likert-options {
+        gap: 2px; /* Khoảng cách giữa các icon rất nhỏ */
+        justify-content: space-between;
+    }
+    
+    /* 6. Chỉnh lại bong bóng chat cho gọn hơn trên mobile */
+    .message {
+        max-width: 90%; /* Cho tin nhắn dài ra chút */
+        font-size: 0.9rem;
+    }
+}
