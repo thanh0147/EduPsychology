@@ -278,10 +278,18 @@ document.addEventListener('DOMContentLoaded', () => {
         submitSurveyButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang phân tích...';
 
         try {
+            const dailyNoteInput = document.getElementById('daily-note');
+            
+            // Lấy giá trị (nếu không tìm thấy element thì để rỗng)
+            const noteValue = dailyNoteInput ? dailyNoteInput.value.trim() : "";
+
+            console.log("📝 Tâm sự gửi đi:", noteValue); // [DEBUG] Xem console có in ra chữ không
+
             const submissionData = {
-                full_name: userNameInput.value || "Bạn", 
+                full_name: userNameInput.value || "Ẩn danh",
                 age: parseInt(userAgeInput.value) || 0,
                 gender: userGenderInput.value || "Khác",
+                daily_note: noteValue, // <--- GỬI ĐI Ở ĐÂY
                 answers: answers
             };
 
