@@ -184,7 +184,6 @@ def submit_survey(submission: SurveySubmissionInput):
                 3. Keep tone supportive and empowering.
                 """
         )
-
         user_prompt = (
             f"Học sinh tên là {submission.full_name}, {submission.age} tuổi, giới tính {submission.gender}. "
             f"Kết quả khảo sát tâm lý cho thấy điểm trung bình là {avg_score:.1f}/5. "
@@ -430,8 +429,7 @@ SYSTEM_PROMPT = (
                 1. Warm, caring, youth-friendly, and clear.
                 2. Avoid slang that may be rude or ambiguous.
                 3. Keep tone supportive and empowering.
-            """
-)
+            """)
 @app.post("/chat")
 def chat_with_bot(chat_input: ChatInput):
     """
