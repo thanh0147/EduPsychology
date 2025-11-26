@@ -5,7 +5,7 @@
 }
 .btn-ks
 {
-    background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
+    background: linear-gradient(135deg, #8E2DE2 20%, #4A00E0 100%);
     color: white !important;
     border-radius: 12px;
     margin: 0 5px;
@@ -19,10 +19,22 @@
 /* --- 2. THIẾT LẬP NỀN GRADIENT --- */
 body {
     /* Gradient Tím Mộng Mơ */
-    background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
+    background: linear-gradient(120deg, #7129e4, #8C6BFF, #E3C8FF);
+    background-size: 300% 300%;
+    animation: gradientShift 12s ease infinite;
     min-height: 100vh;
     background-attachment: fixed; /* Giữ nền cố định khi cuộn */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .bg-animated { animation: none; }
 }
 /* --- 2. GLASSMORPHISM (Hiệu ứng kính mờ hiện đại) --- */
 .navbar {
@@ -114,8 +126,9 @@ body {
 /* --- 5. KHẢO SÁT (SIZE KHỔNG LỒ) --- */
 .survey-question p strong {
     font-size: 1.4rem; /* Câu hỏi to hơn */
-    color: #2c3e50;
-    display: block;
+    background: linear-gradient(135deg, #8E2DE2 20%, #4A00E0 100%);
+    background-clip: text;
+    color: transparent;
     margin-bottom: 15px;
 }
 
@@ -230,4 +243,31 @@ body {
 .modal.fade .modal-dialog {
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: scale(0.8);
+}
+/* --- Ô TÌM KIẾM (GLASS SEARCH) --- */
+.glass-search-group {
+    background: rgba(255, 255, 255, 0.2); /* Nền trong suốt */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px; /* Bo tròn hình viên thuốc */
+    padding: 5px 15px;
+    transition: all 0.3s ease;
+}
+
+.glass-search-group:hover, 
+.glass-search-group:focus-within {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+/* Màu chữ placeholder (gợi ý) */
+#qa-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Màu chữ khi gõ */
+#qa-search-input {
+    color: white !important;
+    font-weight: 500;
 }

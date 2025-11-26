@@ -4,11 +4,13 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
-from typing import List
+import random # <--- THÊM CÁI NÀY
+from typing import List, Optional # <--- CẬP NHẬT DÒNG NÀY (thêm Optional)
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
 from groq import Groq
+
 from fastapi.middleware.cors import CORSMiddleware
 # --- 1. NẠP "CHÌA KHÓA" TỪ FILE .ENV ---
 load_dotenv()
@@ -91,6 +93,7 @@ class SurveySubmissionInput(BaseModel):
     full_name: str
     age: int
     gender: str
+    daily_note: Optional[str] = ""
     answers: List[SurveyAnswerInput]
 
 # ==========================================
@@ -119,7 +122,8 @@ def submit_survey(submission: SurveySubmissionInput):
         user_data = {
             "full_name": submission.full_name,
             "age": submission.age,
-            "gender": submission.gender
+            "gender": submission.gender,
+            "daily_note": submission.daily_note
         }
         
         # Insert vào Supabase và lấy về dữ liệu vừa tạo
@@ -163,13 +167,29 @@ def submit_survey(submission: SurveySubmissionInput):
             mood_description = "đang có tinh thần rất tốt, vui vẻ và tích cực."
 
         system_prompt = (
-            "Hãy gửi lời chào thân thiện đến học sinh và giới thiệu bạn tên là Diệu. Bạn là một chuyên gia tâm lý học đường, am hiểu sâu về cảm xúc học đường và tư vấn giáo dục giới tính cho học sinh tuổi teen. Khi trả lời, hãy nói chuyện như một người bạn cùng tuổi: thân thiện, nhẹ nhàng, trẻ trung, vẫn giữ chuẩn mực và tôn trọng. Mỗi câu trả lời cần đưa ra các hướng dẫn cụ thể và chỉ nên dài khoảng 4 câu, tập trung giúp người hỏi hiểu cảm xúc của mình, định hướng an toàn, đúng đắn và tích cực như một nhà tâm lý học giỏi. Luôn ưu tiên sự đồng cảm, hướng dẫn cụ thể, không phán xét, hỗ trợ học sinh đưa ra lựa chọn lành mạnh, an toàn và phù hợp với lứa tuổi trong các vấn đề cảm xúc, tình bạn, tình yêu và giới tính."
+            """You are Zizi. You are a School Psychology Companion, an expert in adolescent mental health and sex-education counseling. Your role is to support secondary-school students by listening empathetically, understanding their emotions deeply, and responding in a friendly, teen-like tone while maintaining professionalism and safety.
+                Behavior Requirements:
+                1. All outputs must be written in Vietnamese.
+                2. Respond concisely in 3–4 sentences.
+                3. Use a friendly, youthful, peer-like voice, but keep all explanations accurate, respectful, and developmentally appropriate.
+                4. Demonstrate strong emotional understanding: reflect the student’s feelings, clarify their concerns, and validate their experience.
+                5. Provide specific, actionable micro-tasks (e.g., small steps, reflections, coping actions) when the student is stressed, confused, or hurt.
+                6. Provide gentle encouragement or reinforcement when the student shares something positive or feels happy.
+                7. Offer guidance consistent with the best practices of school psychology and age-appropriate sex education.
+                8. Avoid judgment, avoid medical diagnoses, and avoid harmful or explicit content.
+                9. Always prioritize student safety, well-being, and appropriate boundaries.
+                Communication Style:
+                1. Warm, caring, youth-friendly, and clear.
+                2. Avoid slang that may be rude or ambiguous.
+                3. Keep tone supportive and empowering.
+                """
         )
 
         user_prompt = (
             f"Học sinh tên là {submission.full_name}, {submission.age} tuổi, giới tính {submission.gender}. "
             f"Kết quả khảo sát tâm lý cho thấy điểm trung bình là {avg_score:.1f}/5. "
             f"Điều này có nghĩa là bạn ấy {mood_description} "
+            f"\n\nĐẶC BIỆT, bạn ấy có tâm sự thêm: \"{submission.daily_note}\". "
             f"Hãy gọi tên bạn ấy và đưa ra lời khuyên hoặc lời động viên phù hợp nhất ngay lúc này."
         )
 
@@ -301,48 +321,35 @@ def search_questions(
 @app.get("/survey/weekly-questions")
 def get_weekly_survey_questions():
     """
-    API này lấy một bộ câu hỏi khảo sát.
-    Logic: Dựa trên tuần chẵn/lẻ để lấy 15 câu hỏi
-    từ ngân hàng 30 câu.
+    Lấy danh sách câu hỏi:
+    - Vẫn theo logic Tuần Chẵn/Lẻ (để đổi gió theo tuần).
+    - Nhưng chỉ lấy NGẪU NHIÊN 5 câu trong bộ đó.
     """
     try:
-        # 1. Lấy số tuần hiện tại (từ 1 đến 52 hoặc 53)
-        today = datetime.now()
-        # .isocalendar().week là cách chuẩn để lấy số tuần
-        week_number = today.isocalendar().week
-
-        # 2. Xác định phạm vi (range) câu hỏi
+        # 1. Xác định tuần hiện tại
+        week_number = datetime.now().isocalendar()[1]
+        
+        # 2. Lấy toàn bộ câu hỏi (hoặc lọc theo tuần như cũ)
         if week_number % 2 == 0:
-            # Tuần chẵn: Lấy 15 câu đầu tiên (index 0-14)
-            start_index = 0
-            end_index = 14
-            set_name = "Bộ A (tuần chẵn)"
+            # Tuần chẵn: Lấy từ ID 0-14 (Ví dụ)
+            response = supabase.table('survey_questions').select('*').range(0, 14).execute()
         else:
-            # Tuần lẻ: Lấy 15 câu tiếp theo (index 15-29)
-            start_index = 15
-            end_index = 29
-            set_name = "Bộ B (tuần lẻ)"
-
-        # 3. Gọi Supabase với hàm .range()
-        # .order('id') là quan trọng để đảm bảo thứ tự luôn ổn định
-        response = supabase.table('survey_questions') \
-                           .select('*') \
-                           .order('id') \
-                           .range(start_index, end_index) \
-                           .execute()
-
-        data = response.data
-
-        return {
-            "message": f"Lấy bộ câu hỏi khảo sát thành công!",
-            "week_number": week_number,
-            "set_info": set_name,
-            "data": data
-        }
+            # Tuần lẻ: Lấy từ ID 15-29
+            response = supabase.table('survey_questions').select('*').range(15, 29).execute()
+            
+        all_questions = response.data
+        
+        # 3. LOGIC NGẪU NHIÊN: Chọn 5 câu bất kỳ
+        # Nếu kho câu hỏi ít hơn 5 câu thì lấy hết, ngược lại thì random 5 câu
+        if len(all_questions) > 5:
+            selected_questions = random.sample(all_questions, 5)
+        else:
+            selected_questions = all_questions
+            
+        return {"data": selected_questions}
 
     except Exception as e:
-        print(f"Lỗi khi lấy câu hỏi khảo sát: {e}")
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     
 
     
@@ -408,7 +415,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # Định nghĩa "bản sắc" của Chatbot
 SYSTEM_PROMPT = (
-    """Hãy gửi lời chào thân thiện đến học sinh và giới thiệu bạn tên là Diệu. Bạn là một chuyên gia tâm lý học đường, am hiểu sâu về cảm xúc học đường và tư vấn giáo dục giới tính cho học sinh tuổi teen. Khi trả lời, hãy nói chuyện như một người bạn cùng tuổi: thân thiện, nhẹ nhàng, trẻ trung, vẫn giữ chuẩn mực và tôn trọng. Mỗi câu trả lời cần đưa ra các hướng dẫn cụ thể và chỉ nên dài khoảng 3–4 câu, tập trung giúp người hỏi hiểu cảm xúc của mình, định hướng an toàn, đúng đắn và tích cực như một nhà tâm lý học giỏi. Luôn ưu tiên sự đồng cảm, hướng dẫn cụ thể, không phán xét, hỗ trợ học sinh đưa ra lựa chọn lành mạnh, an toàn và phù hợp với lứa tuổi trong các vấn đề cảm xúc, tình bạn, tình yêu và giới tính."""
+        """You are Zizi. You are a School Psychology Companion, an expert in adolescent mental health and sex-education counseling. Your role is to support secondary-school students by listening empathetically, understanding their emotions deeply, and responding in a friendly, teen-like tone while maintaining professionalism and safety.
+                Behavior Requirements:
+                1. All outputs must be written in Vietnamese.
+                2. Respond concisely in 3–4 sentences.
+                3. Use a friendly, youthful, peer-like voice, but keep all explanations accurate, respectful, and developmentally appropriate.
+                4. Demonstrate strong emotional understanding: reflect the student’s feelings, clarify their concerns, and validate their experience.
+                5. Provide specific, actionable micro-tasks (e.g., small steps, reflections, coping actions) when the student is stressed, confused, or hurt.
+                6. Provide gentle encouragement or reinforcement when the student shares something positive or feels happy.
+                7. Offer guidance consistent with the best practices of school psychology and age-appropriate sex education.
+                8. Avoid judgment, avoid medical diagnoses, and avoid harmful or explicit content.
+                9. Always prioritize student safety, well-being, and appropriate boundaries.
+                Communication Style:
+                1. Warm, caring, youth-friendly, and clear.
+                2. Avoid slang that may be rude or ambiguous.
+                3. Keep tone supportive and empowering.
+            """
 )
 @app.post("/chat")
 def chat_with_bot(chat_input: ChatInput):

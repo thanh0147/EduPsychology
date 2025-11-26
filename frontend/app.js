@@ -50,21 +50,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- LOGIC: TÍNH NĂNG 1 - Q&A ---
-    // --- LOGIC: TÍNH NĂNG 1 - Q&A (GIAO DIỆN MỚI) ---
+    const searchInput = document.getElementById('qa-search-input');
+
     async function loadQATopics() {
         try {
             const data = await fetchAPI('/topics');
             qaTopicsList.innerHTML = '';
             
-            // Tạo hiệu ứng xuất hiện dần (Fade in)
             let delay = 0;
 
             data.data.forEach(topic => {
-                // Tạo một cột (Column)
                 const colDiv = document.createElement('div');
-                colDiv.className = 'col-6 col-md-4 col-lg-3'; // Chia cột: Mobile 2 cột, Tablet 3 cột, PC 4 cột
+                // Thêm class 'topic-item' để dùng cho chức năng tìm kiếm
+                colDiv.className = 'col-6 col-md-4 col-lg-3 topic-item'; 
                 
-                // Nội dung thẻ Card
+                // Lưu tên chủ đề vào thuộc tính data-name để tìm kiếm cho nhanh
+                colDiv.setAttribute('data-name', topic.name.toLowerCase());
+
                 colDiv.innerHTML = `
                     <div class="topic-card h-100">
                         <i class="bi bi-${topic.icon} topic-card-icon"></i>
@@ -72,14 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
 
-                // Xử lý sự kiện Click
                 const card = colDiv.querySelector('.topic-card');
                 card.onclick = () => showQAForTopic(topic);
                 
-                // Thêm vào danh sách
                 qaTopicsList.appendChild(colDiv);
                 
-                // (Optional) Hiệu ứng Animation đơn giản khi load
+                // Animation
                 colDiv.style.opacity = '0';
                 colDiv.style.transform = 'translateY(20px)';
                 colDiv.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
@@ -87,12 +87,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     colDiv.style.opacity = '1';
                     colDiv.style.transform = 'translateY(0)';
                 }, delay);
-                delay += 100; // Mỗi thẻ hiện cách nhau 100ms
+                delay += 50; 
             });
             isQALoaded = true;
         } catch (error) {
             qaTopicsList.innerHTML = `<div class="alert alert-danger w-100 text-center">Lỗi tải chủ đề.</div>`;
         }
+    }
+
+    // --- SỰ KIỆN TÌM KIẾM (Lọc danh sách ngay khi gõ) ---
+    if (searchInput) {
+        searchInput.addEventListener('keyup', (e) => {
+            const searchText = e.target.value.toLowerCase(); // Lấy chữ người dùng nhập
+            const items = document.querySelectorAll('.topic-item'); // Lấy tất cả các cột chủ đề
+
+            items.forEach(item => {
+                const topicName = item.getAttribute('data-name'); // Lấy tên chủ đề đã lưu
+                
+                // Kiểm tra: Nếu tên chứa từ khóa tìm kiếm -> Hiện, ngược lại -> Ẩn
+                if (topicName.includes(searchText)) {
+                    item.classList.remove('d-none'); // Hiện
+                } else {
+                    item.classList.add('d-none'); // Ẩn (Dùng class của Bootstrap)
+                }
+            });
+        });
     }
     
     async function showQAForTopic(topic) {
@@ -141,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { value: 5, text: 'Rất tốt', icon: '🥰' }
     ];
     // (Bạn có thể đổi text thành "Rất không đồng ý" v.v. nếu muốn)
-const surveyInfoForm = document.getElementById('survey-info-form');
+    const surveyInfoForm = document.getElementById('survey-info-form');
     const surveyMainContent = document.getElementById('survey-main-content');
     const surveyFooter = document.getElementById('survey-footer');
     const startSurveyBtn = document.getElementById('start-survey-btn');
@@ -181,35 +200,42 @@ const surveyInfoForm = document.getElementById('survey-info-form');
              surveyQuestionsArea.innerHTML = '<p class="text-muted text-center">Không có câu hỏi khảo sát nào.</p>';
              return;
         }
-
-        data.data.forEach(question => {
+        // 1. Hiển thị 5 câu trắc nghiệm (Giữ nguyên logic cũ)
+            data.data.forEach((question, index) => {
                 let questionHTML = `
-                    <div class="mb-4 survey-question" data-question-id="${question.id}">
-                        <p class="mb-2 text-center"><strong>${question.question_text}</strong></p>
+                    <div class="mb-5 survey-question" data-question-id="${question.id}">
+                        <p class="mb-3"><strong>Câu ${index + 1}: ${question.question_text}</strong></p>
                         <div class="likert-options d-flex justify-content-between text-center">
-                `;
-
-                likertScale.forEach(option => {
-                    questionHTML += `
-                        <div class="likert-option">
-                            <label for="q-${question.id}-${option.value}" class="likert-label">
-                                <input class="form-check-input" type="radio" name="q-${question.id}" value="${option.value}" id="q-${question.id}-${option.value}">
-                                
-                                <span class="likert-icon">${option.icon}</span> 
-                                <span class="likert-text d-block">${option.text}</span>
-                            </label>
-                        </div>
-                    `;
-                });
-
-                questionHTML += `
+                            ${likertScale.map(option => `
+                                <div class="likert-option">
+                                    <label class="likert-label">
+                                        <input class="form-check-input" type="radio" name="q-${question.id}" value="${option.value}">
+                                        <span class="likert-icon">${option.icon}</span> 
+                                        <span class="likert-text d-block">${option.text}</span>
+                                    </label>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                    <hr class="my-4">
                 `;
                 surveyQuestionsArea.innerHTML += questionHTML;
             });
-        isSurveyLoaded = true;
+
+            // 2. THÊM CÂU HỎI TỰ LUẬN (CÂU CUỐI CÙNG) - MỚI
+            surveyQuestionsArea.innerHTML += `
+                <hr class="my-5">
+                <div class="mb-4">
+                    <label for="daily-note" class="form-label fw-bold" style="font-size: 1.2rem; color: var(--bs-primary);">
+                        <i class="bi bi-pen me-2"></i>Điều gì bạn muốn kể với mình hôm nay?
+                    </label>
+                    <textarea id="daily-note" class="form-control" rows="3" 
+                        placeholder="Kể cho Zizi nghe bất cứ điều gì (vui, buồn, bí mật...)" 
+                        style="background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); border-radius: 15px;"></textarea>
+                </div>
+            `;
+            
+            isSurveyLoaded = true;
+    
     } catch (error) {
         surveyQuestionsArea.innerHTML = `<div class="alert alert-danger">Lỗi tải khảo sát. Vui lòng thử lại.</div>`;
     }
@@ -400,11 +426,11 @@ const surveyInfoForm = document.getElementById('survey-info-form');
         
         // Kiểm tra nếu khung chat đang trống thì mới thêm lời chào
         if (chatBox.innerHTML.trim() === '') {
-            const welcomeText = "Chào bạn! 👋 Mình là Diệu, người bạn đồng hành luôn sẵn sàng lắng nghe mọi tâm tư của bạn. <br><br> Hôm nay bạn cảm thấy thế nào? Có chuyện gì vui, buồn hay áp lực muốn kể cho Diệu nghe không?";
+            const welcomeText = "Chào bạn! 👋 Mình là Zizi, người bạn đồng hành luôn sẵn sàng lắng nghe mọi tâm tư của bạn. <br><br> Hôm nay bạn cảm thấy thế nào? Có chuyện gì vui, buồn hay áp lực muốn kể cho Zizi nghe không?";
             
             // Thêm tin nhắn vào (giả lập độ trễ 0.5s cho tự nhiên)
             setTimeout(() => {
-                addMessageToChatBox('An (Bot)', welcomeText, 'bot');
+                addMessageToChatBox('Zizi (Bot)', welcomeText, 'bot');
             }, 500);
         }
     }
