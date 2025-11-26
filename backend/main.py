@@ -188,7 +188,7 @@ def submit_survey(submission: SurveySubmissionInput):
             f"Học sinh tên là {submission.full_name}, {submission.age} tuổi, giới tính {submission.gender}. "
             f"Kết quả khảo sát tâm lý cho thấy điểm trung bình là {avg_score:.1f}/5. "
             f"Điều này có nghĩa là bạn ấy {mood_description} "
-            f"\n\nĐẶC BIỆT, bạn ấy có tâm sự thêm: \"{submission.daily_note}\". "
+            f"ĐẶC BIỆT, bạn ấy có tâm sự thêm: {submission.daily_note}. "
             f"Hãy gọi tên bạn ấy và đưa ra lời khuyên hoặc lời động viên phù hợp nhất ngay lúc này."
         )
 
@@ -502,7 +502,22 @@ class SurveyQuestionInput(BaseModel):
     question_text: str
 
 # --- API QUẢN TRỊ (ADMIN) ---
-
+class QAResponseInput(BaseModel):
+    question_id: int
+    user_thought: str
+    session_id: str
+    
+@app.post("/qa/submit-thought")
+def submit_qa_thought(data: QAResponseInput):
+    try:
+        supabase.table('user_qa_responses').insert({
+            "question_id": data.question_id,
+            "user_thought": data.user_thought,
+            "session_id": data.session_id
+        }).execute()
+        return {"message": "Đã lưu ý kiến"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 # 1. Thống kê cảm xúc (Cho biểu đồ)
 @app.get("/admin/stats")
 def get_emotion_stats():

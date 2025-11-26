@@ -311,3 +311,32 @@ body {
         font-size: 0.9rem;
     }
 }
+/* --- TÙY CHỈNH ACCORDION Q&A --- */
+.accordion-button {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(142, 45, 226, 0.2);
+    color: #4A00E0;
+    font-weight: 600;
+}
+
+.accordion-button:not(.collapsed) {
+    background: #f3f0ff; /* Tím rất nhạt khi mở */
+    color: #8E2DE2;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(142, 45, 226, 0.15);
+    border-color: #8E2DE2;
+}
+
+.accordion-body textarea {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    resize: none; /* Không cho kéo giãn */
+}
+.accordion-body textarea:focus {
+    background: white;
+    border-color: #8E2DE2;
+    box-shadow: 0 0 0 0.2rem rgba(142, 45, 226, 0.1);
+}

@@ -114,30 +114,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // --- BIẾN TOÀN CỤC ---
+    // (Đảm bảo bạn đã có biến chatSessionId được tạo ở đầu file như hướng dẫn trước)
+    // Nếu chưa, thêm dòng này vào đầu file app.js:
+    // const chatSessionId = localStorage.getItem('chat_session_id') || 'guest_' + Date.now();
+
     async function showQAForTopic(topic) {
         qaModalTitle.textContent = topic.name;
-        qaModalBody.innerHTML = '<p class="text-center">Đang tải...</p>';
+        qaModalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
         qaModal.show();
+        
         try {
             const data = await fetchAPI(`/questions/topic/${topic.id}`);
             qaModalBody.innerHTML = '';
+            
             if (data.data.length === 0) {
-                qaModalBody.innerHTML = `<p>Chưa có câu hỏi cho chủ đề này.</p>`;
+                qaModalBody.innerHTML = `<p class="text-center text-muted">Chưa có câu hỏi cho chủ đề này.</p>`;
                 return;
             }
+
             const accordion = document.createElement('div');
-            accordion.className = 'accordion';
+            accordion.className = 'accordion accordion-flush';
             accordion.id = 'questionsAccordion';
+            
             data.data.forEach((item, index) => {
                 accordion.innerHTML += `
-                    <div class="accordion-item">
+                    <div class="accordion-item bg-transparent mb-3 border-0">
                         <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${index}">
-                                <strong>Câu ${index + 1}: ${item.question_text}</strong>
+                            <button class="accordion-button collapsed shadow-sm rounded-3 fw-bold text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${item.id}">
+                                <i class="bi bi-question-circle-fill me-2"></i> ${item.question_text}
                             </button>
                         </h2>
-                        <div id="collapse-${index}" class="accordion-collapse collapse" data-bs-parent="#questionsAccordion">
-                            <div class="accordion-body">${item.answer_text}</div>
+                        <div id="collapse-${item.id}" class="accordion-collapse collapse" data-bs-parent="#questionsAccordion">
+                            <div class="accordion-body bg-white rounded-3 mt-2 shadow-sm p-4">
+                                
+                                <div id="qa-input-section-${item.id}">
+                                    <label class="form-label fw-bold text-muted">🤔 Theo bạn thì sao?</label>
+                                    <textarea id="qa-thought-${item.id}" class="form-control mb-3" rows="3" placeholder="Nhập suy nghĩ của bạn để xem đáp án chính xác nhé..."></textarea>
+                                    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="submitQAThought(${item.id})">
+                                        Gửi & Xem đáp án <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
+
+                                <div id="qa-answer-section-${item.id}" style="display: none;">
+                                    <div class="alert alert-success border-0 bg-opacity-10 bg-success">
+                                        <h6 class="alert-heading fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Giải đáp:</h6>
+                                        <p class="mb-0" style="line-height: 1.6;">${item.answer_text}</p>
+                                    </div>
+                                    <div class="mt-3 p-3 bg-light rounded border-start border-4 border-primary">
+                                        <small class="text-muted d-block fw-bold mb-1">Suy nghĩ của bạn:</small>
+                                        <em class="text-secondary" id="user-prev-thought-${item.id}">...</em>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 `;
@@ -147,6 +177,56 @@ document.addEventListener('DOMContentLoaded', () => {
             qaModalBody.innerHTML = `<div class="alert alert-danger">Lỗi tải câu hỏi.</div>`;
         }
     }
+
+    // --- HÀM XỬ LÝ KHI BẤM NÚT GỬI ---
+    // (Phải gán vào window để HTML gọi được onclick)
+    window.submitQAThought = async function(questionId) {
+        const inputArea = document.getElementById(`qa-input-section-${questionId}`);
+        const answerArea = document.getElementById(`qa-answer-section-${questionId}`);
+        const textarea = document.getElementById(`qa-thought-${questionId}`);
+        const prevThoughtDisplay = document.getElementById(`user-prev-thought-${questionId}`);
+        
+        const userThought = textarea.value.trim();
+
+        if (!userThought) {
+            alert("Bạn hãy nhập một chút suy nghĩ của mình nhé!");
+            textarea.focus();
+            return;
+        }
+
+        // Cập nhật giao diện ngay lập tức cho mượt
+        inputArea.style.opacity = '0.5';
+        inputArea.style.pointerEvents = 'none'; // Khóa nút lại
+
+        try {
+            // Gửi về Server (Backend lưu lại)
+            await fetchAPI('/qa/submit-thought', {
+                method: 'POST',
+                body: JSON.stringify({
+                    question_id: parseInt(questionId),
+                    user_thought: userThought,
+                    session_id: localStorage.getItem('chat_session_id') || 'guest'
+                })
+            });
+
+            // Hiển thị kết quả
+            inputArea.style.display = 'none'; // Ẩn khung nhập
+            answerArea.style.display = 'block'; // Hiện đáp án
+            prevThoughtDisplay.innerText = userThought; // Hiện lại cái user vừa nhập
+            
+            // Hiệu ứng Fade in cho đáp án
+            answerArea.style.opacity = '0';
+            setTimeout(() => {
+                answerArea.style.transition = 'opacity 0.5s';
+                answerArea.style.opacity = '1';
+            }, 50);
+
+        } catch (error) {
+            alert("Lỗi kết nối: " + error.message);
+            inputArea.style.opacity = '1';
+            inputArea.style.pointerEvents = 'auto';
+        }
+    };
 
     // --- LOGIC: TÍNH NĂNG 2 - KHẢO SÁT (ĐÃ SỬA) ---
 // --- LOGIC: TÍNH NĂNG 2 - KHẢO SÁT (ĐÃ THAY ĐỔI) ---
@@ -278,10 +358,18 @@ document.addEventListener('DOMContentLoaded', () => {
         submitSurveyButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang phân tích...';
 
         try {
+            const dailyNoteInput = document.getElementById('daily-note');
+            
+            // Lấy giá trị (nếu không tìm thấy element thì để rỗng)
+            const noteValue = dailyNoteInput ? dailyNoteInput.value.trim() : "";
+
+            console.log("📝 Tâm sự gửi đi:", noteValue); // [DEBUG] Xem console có in ra chữ không
+
             const submissionData = {
-                full_name: userNameInput.value || "Bạn", 
+                full_name: userNameInput.value || "Ẩn danh",
                 age: parseInt(userAgeInput.value) || 0,
                 gender: userGenderInput.value || "Khác",
+                daily_note: noteValue, // <--- GỬI ĐI Ở ĐÂY
                 answers: answers
             };
 
