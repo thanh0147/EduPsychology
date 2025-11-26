@@ -188,7 +188,7 @@ def submit_survey(submission: SurveySubmissionInput):
             f"Học sinh tên là {submission.full_name}, {submission.age} tuổi, giới tính {submission.gender}. "
             f"Kết quả khảo sát tâm lý cho thấy điểm trung bình là {avg_score:.1f}/5. "
             f"Điều này có nghĩa là bạn ấy {mood_description} "
-            f"\n\nĐẶC BIỆT, bạn ấy có tâm sự thêm: \"{submission.daily_note}\". "
+            f"ĐẶC BIỆT, bạn ấy có tâm sự thêm: {submission.daily_note}. "
             f"Hãy gọi tên bạn ấy và đưa ra lời khuyên hoặc lời động viên phù hợp nhất ngay lúc này."
         )
 
