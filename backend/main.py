@@ -248,8 +248,7 @@ def get_all_topics():
 def get_random_questions_for_topic(
     # {topic_id} trên URL sẽ được đưa vào biến topic_id này
     # Path(...) giúp xác thực dữ liệu: phải là số nguyên, lớn hơn 0
-    topic_id: int = Path(..., title="ID của Chủ đề", ge=1)
-):
+    topic_id: int = Path(..., title="ID của Chủ đề", ge=1)):
     """
     API này lấy 10 câu hỏi NGẪU NHIÊN thuộc một chủ đề cụ thể.
     Nó gọi hàm 'get_random_questions' mà chúng ta đã tạo trong Supabase.
@@ -259,8 +258,8 @@ def get_random_questions_for_topic(
         # 'rpc' là viết tắt của 'Remote Procedure Call'
         response = supabase.rpc(
             'get_random_questions',           # Tên hàm SQL
-            {'p_topic_id': topic_id}          # Tham số truyền vào hàm
-        ).execute()
+            {'p_topic_id': topic_id}).execute()          # Tham số truyền vào hàm
+        
 
         data = response.data
         
@@ -496,7 +495,8 @@ class TopicInput(BaseModel):
 class QuestionInput(BaseModel):
     topic_id: int
     question_text: str
-    answer_text: str
+    answer_yes: str  # <--- Mới
+    answer_no: str   # <--- Mới
 
 class SurveyQuestionInput(BaseModel):
     question_text: str
@@ -621,9 +621,10 @@ def create_qa_question(q: QuestionInput):
         supabase.table('questions').insert({
             "topic_id": q.topic_id,
             "question_text": q.question_text,
-            "answer_text": q.answer_text
+            "answer_yes": q.answer_yes, # <--- Lưu đáp án Có
+            "answer_no": q.answer_no    # <--- Lưu đáp án Không
         }).execute()
-        return {"message": "Thêm câu hỏi thành công"}
+        return {"message": "Thêm câu hỏi rẽ nhánh thành công"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

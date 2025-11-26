@@ -109,7 +109,7 @@
             </div>
 
             <div id="section-qa" class="d-none">
-                <h2 class="h4 mb-3">❓ Thêm câu hỏi Q&A</h2>
+                <h2 class="h4 mb-3">❓ Thêm câu hỏi rẽ nhánh (Có/Không)</h2>
                 <div class="card card-stat p-3">
                     <form id="form-add-qa">
                         <div class="mb-3">
@@ -117,13 +117,21 @@
                             <select id="qa-topic-select" class="form-select" required></select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Câu hỏi</label>
-                            <input type="text" id="qa-question" class="form-control" required>
+                            <label class="form-label fw-bold">Câu hỏi (Dạng Yes/No)</label>
+                            <input type="text" id="qa-question" class="form-control" placeholder="VD: Bạn có hay cảm thấy lo lắng không?" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Câu trả lời</label>
-                            <textarea id="qa-answer" class="form-control" rows="4" required></textarea>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold text-success">Lời khuyên nếu chọn "CÓ"</label>
+                                <textarea id="qa-answer-yes" class="form-control" rows="3" placeholder="Lời khuyên cho người chọn Có..." required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold text-danger">Lời khuyên nếu chọn "KHÔNG"</label>
+                                <textarea id="qa-answer-no" class="form-control" rows="3" placeholder="Lời khuyên cho người chọn Không..." required></textarea>
+                            </div>
                         </div>
+
                         <button type="submit" class="btn btn-primary w-100">Lưu câu hỏi</button>
                     </form>
                 </div>

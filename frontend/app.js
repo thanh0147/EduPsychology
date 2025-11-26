@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             qaModalBody.innerHTML = '';
             
             if (data.data.length === 0) {
-                qaModalBody.innerHTML = `<p class="text-center text-muted">Chưa có câu hỏi cho chủ đề này.</p>`;
+                qaModalBody.innerHTML = `<p class="text-center text-muted">Chưa có câu hỏi.</p>`;
                 return;
             }
 
@@ -137,34 +137,36 @@ document.addEventListener('DOMContentLoaded', () => {
             accordion.className = 'accordion accordion-flush';
             accordion.id = 'questionsAccordion';
             
-            data.data.forEach((item, index) => {
+            data.data.forEach((item) => {
                 accordion.innerHTML += `
                     <div class="accordion-item bg-transparent mb-3 border-0">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed shadow-sm rounded-3 fw-bold text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${item.id}">
-                                <i class="bi bi-question-circle-fill me-2"></i> ${item.question_text}
+                                <i class="bi bi-patch-question-fill me-2"></i> ${item.question_text}
                             </button>
                         </h2>
                         <div id="collapse-${item.id}" class="accordion-collapse collapse" data-bs-parent="#questionsAccordion">
-                            <div class="accordion-body bg-white rounded-3 mt-2 shadow-sm p-4">
+                            <div class="accordion-body bg-white rounded-3 mt-2 shadow-sm p-4 text-center">
                                 
-                                <div id="qa-input-section-${item.id}">
-                                    <label class="form-label fw-bold text-muted">🤔 Theo bạn thì sao?</label>
-                                    <textarea id="qa-thought-${item.id}" class="form-control mb-3" rows="3" placeholder="Nhập suy nghĩ của bạn để xem đáp án chính xác nhé..."></textarea>
-                                    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="submitQAThought(${item.id})">
-                                        Gửi & Xem đáp án <i class="bi bi-arrow-right"></i>
-                                    </button>
+                                <div id="qa-options-${item.id}">
+                                    <p class="mb-3 text-muted">Câu trả lời của bạn là?</p>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <button class="btn btn-outline-success px-4 rounded-pill" onclick="selectQAOption(${item.id}, 'yes', '${encodeURIComponent(item.answer_yes)}')">
+                                            <i class="bi bi-check-circle me-1"></i> Có
+                                        </button>
+                                        
+                                        <button class="btn btn-outline-danger px-4 rounded-pill" onclick="selectQAOption(${item.id}, 'no', '${encodeURIComponent(item.answer_no)}')">
+                                            <i class="bi bi-x-circle me-1"></i> Không
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div id="qa-answer-section-${item.id}" style="display: none;">
-                                    <div class="alert alert-success border-0 bg-opacity-10 bg-success">
-                                        <h6 class="alert-heading fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Giải đáp:</h6>
-                                        <p class="mb-0" style="line-height: 1.6;">${item.answer_text}</p>
-                                    </div>
-                                    <div class="mt-3 p-3 bg-light rounded border-start border-4 border-primary">
-                                        <small class="text-muted d-block fw-bold mb-1">Suy nghĩ của bạn:</small>
-                                        <em class="text-secondary" id="user-prev-thought-${item.id}">...</em>
-                                    </div>
+                                <div id="qa-result-${item.id}" style="display: none;" class="mt-3">
+                                    <div class="alert border-0" id="qa-alert-${item.id}">
+                                        </div>
+                                    <button class="btn btn-sm btn-light text-muted mt-2" onclick="resetQAOption(${item.id})">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Chọn lại
+                                    </button>
                                 </div>
 
                             </div>
@@ -177,6 +179,44 @@ document.addEventListener('DOMContentLoaded', () => {
             qaModalBody.innerHTML = `<div class="alert alert-danger">Lỗi tải câu hỏi.</div>`;
         }
     }
+
+    // --- HÀM XỬ LÝ KHI CHỌN YES/NO ---
+    window.selectQAOption = function(id, type, encodedAnswer) {
+        const optionArea = document.getElementById(`qa-options-${id}`);
+        const resultArea = document.getElementById(`qa-result-${id}`);
+        const alertBox = document.getElementById(`qa-alert-${id}`);
+        
+        // Giải mã nội dung tin nhắn (vì ta đã encode ở trên để tránh lỗi ký tự đặc biệt)
+        const answerText = decodeURIComponent(encodedAnswer);
+
+        // Ẩn nút chọn
+        optionArea.style.display = 'none';
+        
+        // Hiện kết quả
+        resultArea.style.display = 'block';
+        
+        // Đổi màu thông báo tùy theo chọn Có hay Không
+        if (type === 'yes') {
+            alertBox.className = 'alert alert-success bg-opacity-10 bg-success'; // Màu xanh
+            alertBox.innerHTML = `<h6 class="fw-bold"><i class="bi bi-check-circle-fill"></i> Lời khuyên:</h6> ${answerText}`;
+        } else {
+            alertBox.className = 'alert alert-secondary bg-opacity-10 bg-secondary'; // Màu xám/đỏ nhẹ
+            alertBox.innerHTML = `<h6 class="fw-bold"><i class="bi bi-heart-fill"></i> Lời khuyên:</h6> ${answerText}`;
+        }
+        
+        // Hiệu ứng Fade in
+        resultArea.style.opacity = 0;
+        setTimeout(() => {
+            resultArea.style.transition = 'opacity 0.5s';
+            resultArea.style.opacity = 1;
+        }, 50);
+    };
+
+    // --- HÀM RESET ĐỂ CHỌN LẠI ---
+    window.resetQAOption = function(id) {
+        document.getElementById(`qa-options-${id}`).style.display = 'block';
+        document.getElementById(`qa-result-${id}`).style.display = 'none';
+    };
 
     // --- HÀM XỬ LÝ KHI BẤM NÚT GỬI ---
     // (Phải gán vào window để HTML gọi được onclick)

@@ -112,19 +112,27 @@ async function deleteTopic(id) {
 }
 
 // --- 3. QUẢN LÝ Q&A ---
+// --- 3. QUẢN LÝ Q&A (SỬA) ---
 document.getElementById('form-add-qa')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const topic_id = document.getElementById('qa-topic-select').value;
     const question_text = document.getElementById('qa-question').value;
-    const answer_text = document.getElementById('qa-answer').value;
+    // Lấy 2 giá trị mới
+    const answer_yes = document.getElementById('qa-answer-yes').value;
+    const answer_no = document.getElementById('qa-answer-no').value;
 
     await fetch(`${API_URL}/admin/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic_id, question_text, answer_text })
+        body: JSON.stringify({ 
+            topic_id, 
+            question_text, 
+            answer_yes, 
+            answer_no 
+        })
     });
-    alert('Thêm câu hỏi Q&A thành công!');
-    e.target.reset(); // Xóa form
+    alert('Thêm câu hỏi thành công!');
+    e.target.reset(); 
 });
 
 // --- 4. QUẢN LÝ KHẢO SÁT ---
