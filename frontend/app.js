@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 
                                 <div id="qa-input-section-${item.id}">
                                     <label class="form-label fw-bold text-muted small text-uppercase">
-                                        <i class="bi bi-pencil-fill me-1"></i>Suy nghĩ của bạn
+                                        🤔<i class="bi bi-pencil-fill me-1"></i>Suy nghĩ của bạn
                                     </label>
                                     <textarea id="qa-thought-${item.id}" class="form-control mb-3" rows="3" 
                                         placeholder="Theo bạn thì sao? Hãy ghi lại suy nghĩ của mình trước khi xem đáp án nhé..." 
