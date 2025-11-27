@@ -272,12 +272,22 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LOGIC: TÍNH NĂNG 2 - KHẢO SÁT (ĐÃ THAY ĐỔI) ---
     
     // Định nghĩa thang đo Likert
-    const likertScale = [
-        { value: 1, text: 'Rất tệ', icon: '😣'},
-        { value: 2, text: 'Tệ', icon: '😥' },
-        { value: 3, text: 'Bình thường', icon: '🙂' },
-        { value: 4, text: 'Tốt', icon: '☺️' },
-        { value: 5, text: 'Rất tốt', icon: '🥰' }
+    // Bộ 1: Cảm xúc / Đánh giá (Cũ)
+    const scaleRating = [
+        { value: 1, text: "Rất tệ", icon: "😫" },
+        { value: 2, text: "Tệ", icon: "😣" }, // Icon class của bạn
+        { value: 3, text: "Bình thường", icon: "😐" },
+        { value: 4, text: "Tốt", icon: "🙂" },
+        { value: 5, text: "Rất tốt", icon: "🤩" }
+    ];
+
+    // Bộ 2: Tần suất (Mới)
+    const scaleFrequency = [
+        { value: 1, text: "Không bao giờ", icon: "🚫" },
+        { value: 2, text: "Hiếm khi", icon: "📉" },
+        { value: 3, text: "Thi thoảng", icon: "⚡" },
+        { value: 4, text: "Thường xuyên", icon: "repeat" }, // Dùng icon bootstrap
+        { value: 5, text: "Luôn luôn", icon: "infinity" }   // Dùng icon bootstrap
     ];
     // (Bạn có thể đổi text thành "Rất không đồng ý" v.v. nếu muốn)
     const surveyInfoForm = document.getElementById('survey-info-form');
@@ -322,25 +332,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // 1. Hiển thị 5 câu trắc nghiệm (Giữ nguyên logic cũ)
             data.data.forEach((question, index) => {
+                // KIỂM TRA LOẠI CÂU HỎI ĐỂ CHỌN THANG ĐO
+                // Nếu DB trả về 'frequency' thì dùng bộ Tần suất, ngược lại dùng bộ Đánh giá
+                const currentScale = (question.question_type === 'frequency') ? scaleFrequency : scaleRating;
+
                 let questionHTML = `
                     <div class="mb-5 survey-question" data-question-id="${question.id}">
                         <p class="mb-3"><strong>Câu ${index + 1}: ${question.question_text}</strong></p>
+                        
                         <div class="likert-options d-flex justify-content-between text-center">
-                            ${likertScale.map(option => `
+                            ${currentScale.map(option => {
+                                // Xử lý icon: Nếu là emoji thì hiện thẳng, nếu là class bootstrap thì dùng thẻ <i>
+                                // Ở đây mình giả sử bạn dùng Emoji cho nhanh, hoặc bạn có thể chỉnh lại class
+                                let iconDisplay = option.icon;
+                                if (option.icon.length > 2) { 
+                                    // Nếu tên icon dài (ví dụ 'repeat'), coi như là class Bootstrap
+                                    iconDisplay = `<i class="bi bi-${option.icon}" style="font-size: 2rem;"></i>`;
+                                }
+
+                                return `
                                 <div class="likert-option">
                                     <label class="likert-label">
                                         <input class="form-check-input" type="radio" name="q-${question.id}" value="${option.value}">
-                                        <span class="likert-icon">${option.icon}</span> 
+                                        <span class="likert-icon">${iconDisplay}</span> 
                                         <span class="likert-text d-block">${option.text}</span>
                                     </label>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
                 surveyQuestionsArea.innerHTML += questionHTML;
             });
-
             // 2. THÊM CÂU HỎI TỰ LUẬN (CÂU CUỐI CÙNG) - MỚI
             surveyQuestionsArea.innerHTML += `
                 <hr class="my-5">

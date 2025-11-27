@@ -244,40 +244,37 @@ def get_all_topics():
     
 # =========== API MỚI CỦA BẠN BẮT ĐẦU TỪ ĐÂY ===========
 
+# Đảm bảo bạn đã import random ở đầu file
+import random 
+
 @app.get("/questions/topic/{topic_id}")
-def get_random_questions_for_topic(
-    # {topic_id} trên URL sẽ được đưa vào biến topic_id này
-    # Path(...) giúp xác thực dữ liệu: phải là số nguyên, lớn hơn 0
-    topic_id: int = Path(..., title="ID của Chủ đề", ge=1)):
+def get_questions_by_topic(topic_id: int):
     """
-    API này lấy 10 câu hỏi NGẪU NHIÊN thuộc một chủ đề cụ thể.
-    Nó gọi hàm 'get_random_questions' mà chúng ta đã tạo trong Supabase.
+    Lấy câu hỏi theo chủ đề:
+    - Logic cũ: Lấy hết (select *).
+    - Logic mới: Lấy hết -> Trộn ngẫu nhiên -> Cắt lấy 4 câu.
     """
     try:
-        # Đây là lúc gọi "tuyệt chiêu" (SQL Function)
-        # 'rpc' là viết tắt của 'Remote Procedure Call'
-        response = supabase.rpc(
-            'get_random_questions',           # Tên hàm SQL
-            {'p_topic_id': topic_id}).execute()          # Tham số truyền vào hàm
+        # 1. Lấy TOÀN BỘ câu hỏi của chủ đề này từ CSDL
+        response = supabase.table('questions') \
+                           .select('*') \
+                           .eq('topic_id', topic_id) \
+                           .execute()
         
+        all_questions = response.data
 
-        data = response.data
-        
-        if not data:
-            # Vẫn trả về thành công, nhưng là một danh sách rỗng
-            return {
-                "message": f"Không tìm thấy câu hỏi nào cho chủ đề ID {topic_id}",
-                "data": []
-            }
+        # 2. LOGIC NGẪU NHIÊN: Chỉ lấy 4 câu
+        if len(all_questions) > 4:
+            # Nếu kho có nhiều hơn 4 câu -> Chọn ngẫu nhiên 4 câu
+            selected_questions = random.sample(all_questions, 4)
+        else:
+            # Nếu kho chỉ có 2-3 câu -> Lấy hết (không thì lỗi)
+            selected_questions = all_questions
 
-        return {
-            "message": f"Lấy 10 câu hỏi ngẫu nhiên cho chủ đề ID {topic_id} thành công!",
-            "data": data
-        }
+        return {"data": selected_questions}
 
     except Exception as e:
-        print(f"Lỗi khi gọi RPC get_random_questions: {e}")
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/questions/search")
 def search_questions(
@@ -319,34 +316,35 @@ def search_questions(
 @app.get("/survey/weekly-questions")
 def get_weekly_survey_questions():
     """
-    Lấy danh sách câu hỏi:
-    - Vẫn theo logic Tuần Chẵn/Lẻ (để đổi gió theo tuần).
-    - Nhưng chỉ lấy NGẪU NHIÊN 5 câu trong bộ đó.
+    LOGIC MỚI: 
+    1. Lấy TOÀN BỘ câu hỏi từ CSDL (Không giới hạn ID).
+    2. Trộn ngẫu nhiên và chọn ra 5 câu.
+    => Đảm bảo câu hỏi nào cũng có cơ hội xuất hiện.
     """
     try:
-        # 1. Xác định tuần hiện tại
-        week_number = datetime.now().isocalendar()[1]
-        
-        # 2. Lấy toàn bộ câu hỏi (hoặc lọc theo tuần như cũ)
-        if week_number % 2 == 0:
-            # Tuần chẵn: Lấy từ ID 0-14 (Ví dụ)
-            response = supabase.table('survey_questions').select('*').range(0, 14).execute()
-        else:
-            # Tuần lẻ: Lấy từ ID 15-29
-            response = supabase.table('survey_questions').select('*').range(15, 29).execute()
+        # 1. Lấy tất cả câu hỏi trong bảng
+        # Dùng .range(0, 999) để đảm bảo lấy hết nếu số lượng câu hỏi tăng lên
+        response = supabase.table('survey_questions') \
+                           .select('*') \
+                           .range(0, 999) \
+                           .execute()
             
         all_questions = response.data
         
-        # 3. LOGIC NGẪU NHIÊN: Chọn 5 câu bất kỳ
-        # Nếu kho câu hỏi ít hơn 5 câu thì lấy hết, ngược lại thì random 5 câu
+        # Debug: In ra xem tổng cộng có bao nhiêu câu trong kho
+        print(f"📚 Tổng số câu hỏi trong kho: {len(all_questions)}")
+
+        # 2. LOGIC NGẪU NHIÊN: Chọn 5 câu bất kỳ từ tập tổng hợp
         if len(all_questions) > 5:
             selected_questions = random.sample(all_questions, 5)
         else:
+            # Nếu kho ít hơn 5 câu thì lấy hết
             selected_questions = all_questions
             
         return {"data": selected_questions}
 
     except Exception as e:
+        print(f"Lỗi lấy câu hỏi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
 
