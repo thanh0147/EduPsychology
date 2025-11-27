@@ -500,11 +500,13 @@ class SurveyQuestionInput(BaseModel):
     question_text: str
 
 # --- API QUẢN TRỊ (ADMIN) ---
+# 1. Model nhận dữ liệu
 class QAResponseInput(BaseModel):
     question_id: int
     user_thought: str
     session_id: str
-    
+
+# 2. API Lưu suy nghĩ (Nếu chưa có thì thêm, có rồi thì giữ nguyên)
 @app.post("/qa/submit-thought")
 def submit_qa_thought(data: QAResponseInput):
     try:
@@ -513,7 +515,7 @@ def submit_qa_thought(data: QAResponseInput):
             "user_thought": data.user_thought,
             "session_id": data.session_id
         }).execute()
-        return {"message": "Đã lưu ý kiến"}
+        return {"message": "Đã lưu thành công"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # 1. Thống kê cảm xúc (Cho biểu đồ)

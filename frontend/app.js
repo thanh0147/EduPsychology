@@ -119,17 +119,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Nếu chưa, thêm dòng này vào đầu file app.js:
     // const chatSessionId = localStorage.getItem('chat_session_id') || 'guest_' + Date.now();
 
+    // --- HÀM HIỂN THỊ CÂU HỎI (DẠNG NHẬP LIỆU) ---
     async function showQAForTopic(topic) {
         qaModalTitle.textContent = topic.name;
         qaModalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
         qaModal.show();
         
         try {
+            // Gọi API lấy câu hỏi
             const data = await fetchAPI(`/questions/topic/${topic.id}`);
             qaModalBody.innerHTML = '';
             
-            if (data.data.length === 0) {
-                qaModalBody.innerHTML = `<p class="text-center text-muted">Chưa có câu hỏi.</p>`;
+            if (!data.data || data.data.length === 0) {
+                qaModalBody.innerHTML = `<p class="text-center text-muted">Chưa có câu hỏi nào cho chủ đề này.</p>`;
                 return;
             }
 
@@ -138,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
             accordion.id = 'questionsAccordion';
             
             data.data.forEach((item) => {
+                // Ưu tiên lấy answer_text, nếu không có thì lấy answer_yes (dự phòng)
+                const finalAnswer = item.answer_text || item.answer_yes || "Đang cập nhật câu trả lời...";
+
                 accordion.innerHTML += `
                     <div class="accordion-item bg-transparent mb-3 border-0">
                         <h2 class="accordion-header">
@@ -146,27 +151,42 @@ document.addEventListener('DOMContentLoaded', () => {
                             </button>
                         </h2>
                         <div id="collapse-${item.id}" class="accordion-collapse collapse" data-bs-parent="#questionsAccordion">
-                            <div class="accordion-body bg-white rounded-3 mt-2 shadow-sm p-4 text-center">
+                            <div class="accordion-body bg-white rounded-3 mt-2 shadow-sm p-4">
                                 
-                                <div id="qa-options-${item.id}">
-                                    <p class="mb-3 text-muted">Câu trả lời của bạn là?</p>
-                                    <div class="d-flex justify-content-center gap-3">
-                                        <button class="btn btn-outline-success px-4 rounded-pill" onclick="selectQAOption(${item.id}, 'yes', '${encodeURIComponent(item.answer_yes)}')">
-                                            <i class="bi bi-check-circle me-1"></i> Có
-                                        </button>
-                                        
-                                        <button class="btn btn-outline-danger px-4 rounded-pill" onclick="selectQAOption(${item.id}, 'no', '${encodeURIComponent(item.answer_no)}')">
-                                            <i class="bi bi-x-circle me-1"></i> Không
+                                <div id="qa-input-section-${item.id}">
+                                    <label class="form-label fw-bold text-muted small text-uppercase">
+                                        <i class="bi bi-pencil-fill me-1"></i>Suy nghĩ của bạn
+                                    </label>
+                                    <textarea id="qa-thought-${item.id}" class="form-control mb-3" rows="3" 
+                                        placeholder="Theo bạn thì sao? Hãy ghi lại suy nghĩ của mình trước khi xem đáp án nhé..." 
+                                        style="background: #f8f9fa; border: 2px dashed #dee2e6;"></textarea>
+                                    
+                                    <div class="d-grid">
+                                        <button class="btn btn-primary rounded-pill fw-bold" onclick="submitQAThought(${item.id})">
+                                            Gửi suy nghĩ & Xem đáp án <i class="bi bi-magic ms-2"></i>
                                         </button>
                                     </div>
                                 </div>
 
-                                <div id="qa-result-${item.id}" style="display: none;" class="mt-3">
-                                    <div class="alert border-0" id="qa-alert-${item.id}">
-                                        </div>
-                                    <button class="btn btn-sm btn-light text-muted mt-2" onclick="resetQAOption(${item.id})">
-                                        <i class="bi bi-arrow-counterclockwise"></i> Chọn lại
-                                    </button>
+                                <div id="qa-answer-section-${item.id}" style="display: none;">
+                                    
+                                    <div class="mb-3 p-3 bg-light rounded border-start border-4 border-primary">
+                                        <small class="text-muted d-block fw-bold mb-1">Bạn đã nghĩ rằng:</small>
+                                        <em class="text-secondary fst-italic" id="user-prev-thought-${item.id}">...</em>
+                                    </div>
+
+                                    <div class="alert alert-success border-0 bg-opacity-10 bg-success shadow-sm">
+                                        <h6 class="alert-heading fw-bold mb-2 text-success">
+                                            <i class="bi bi-lightbulb-fill me-2"></i>Góc nhìn tâm lý:
+                                        </h6>
+                                        <div style="line-height: 1.8; white-space: pre-line;">${finalAnswer}</div>
+                                    </div>
+
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="resetQAInput(${item.id})">
+                                            <i class="bi bi-arrow-repeat me-1"></i> Viết lại suy nghĩ
+                                        </button>
+                                    </div>
                                 </div>
 
                             </div>
@@ -176,10 +196,80 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             qaModalBody.appendChild(accordion);
         } catch (error) {
-            qaModalBody.innerHTML = `<div class="alert alert-danger">Lỗi tải câu hỏi.</div>`;
+            console.error(error);
+            qaModalBody.innerHTML = `<div class="alert alert-danger">Lỗi tải dữ liệu: ${error.message}</div>`;
         }
     }
 
+    // --- HÀM XỬ LÝ GỬI SUY NGHĨ ---
+    window.submitQAThought = async function(questionId) {
+        const inputArea = document.getElementById(`qa-input-section-${questionId}`);
+        const answerArea = document.getElementById(`qa-answer-section-${questionId}`);
+        const textarea = document.getElementById(`qa-thought-${questionId}`);
+        const prevThoughtDisplay = document.getElementById(`user-prev-thought-${questionId}`);
+        
+        const userThought = textarea.value.trim();
+
+        if (!userThought) {
+            alert("Bạn ơi, hãy thử viết vài dòng suy nghĩ của mình nhé!");
+            textarea.focus();
+            return;
+        }
+
+        // Khóa giao diện tạm thời
+        const btn = inputArea.querySelector('button');
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+        btn.disabled = true;
+
+        try {
+            // Gửi về Server
+            await fetchAPI('/qa/submit-thought', {
+                method: 'POST',
+                body: JSON.stringify({
+                    question_id: parseInt(questionId),
+                    user_thought: userThought,
+                    session_id: localStorage.getItem('chat_session_id') || 'guest_' + Date.now()
+                })
+            });
+
+            // Hiển thị kết quả
+            inputArea.style.display = 'none';
+            answerArea.style.display = 'block';
+            prevThoughtDisplay.innerText = userThought;
+            
+            // Hiệu ứng hiện ra
+            answerArea.style.opacity = '0';
+            answerArea.style.transform = 'translateY(10px)';
+            answerArea.style.transition = 'all 0.5s ease';
+            
+            setTimeout(() => {
+                answerArea.style.opacity = '1';
+                answerArea.style.transform = 'translateY(0)';
+            }, 50);
+
+        } catch (error) {
+            alert("Lỗi kết nối: " + error.message);
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+        }
+    };
+
+    // --- HÀM RESET (Nếu muốn nhập lại) ---
+    window.resetQAInput = function(id) {
+        const inputArea = document.getElementById(`qa-input-section-${id}`);
+        const answerArea = document.getElementById(`qa-answer-section-${id}`);
+        const btn = inputArea.querySelector('button');
+        
+        inputArea.style.display = 'block';
+        answerArea.style.display = 'none';
+        
+        // Reset nút bấm
+        btn.disabled = false;
+        btn.innerHTML = 'Gửi suy nghĩ & Xem đáp án <i class="bi bi-magic ms-2"></i>';
+    };
+
+    
     // --- HÀM XỬ LÝ KHI CHỌN YES/NO ---
     window.selectQAOption = function(id, type, encodedAnswer) {
         const optionArea = document.getElementById(`qa-options-${id}`);
